@@ -35,22 +35,83 @@ def predict_from_features(stream_features: dict, tvl_sources: dict|None=None):
     }
 
 def compute_tvl(source_status: dict):
-    reg=BUNDLE['tvl_registry']; fam={}
-    for name,cfg in reg.items():
-        x=source_status.get(name,{}) or {}
-        age=float(x.get('age_days',0.0 if name=='static' else 1e9))
-        coverage=float(np.clip(x.get('coverage',1.0 if name=='static' else 0.0),0,1))
-        completeness=float(np.clip(x.get('completeness',1.0 if name=='static' else 0.0),0,1))
-        H=float(cfg['half_life']); V=float(cfg['valid_age']); rr=float(cfg['source_reliability'])
-        gt=0.0 if (not np.isfinite(age) or age>V) else float(2**(-max(age,0.0)/H))
-        gq=float(math.sqrt(max(coverage*completeness*rr,0.0)))
-        gf=gt*gq; stale=int((not np.isfinite(age)) or age>V)
-        fam[name]={'age_days':None if not np.isfinite(age) else age,'coverage':coverage,'completeness':completeness,'gamma_time':gt,'gamma_quality':gq,'gamma':gf,'stale':stale}
-    out={}
+    registry = BUNDLE['tvl_registry']
+    families = {}
+
+    for name, config in registry.items():
+        source = source_status.get(name, {}) or {}
+        default_age = 0.0 if name == 'static' else 1e9
+        default_coverage = 1.0 if name == 'static' else 0.0
+        default_completeness = 1.0 if name == 'static' else 0.0
+
+        age = float(source.get('age_days', default_age))
+        coverage = float(
+            np.clip(source.get('coverage', default_coverage), 0, 1)
+        )
+        completeness = float(
+            np.clip(source.get('completeness', default_completeness), 0, 1)
+        )
+
+        half_life = float(config['half_life'])
+        valid_age = float(config['valid_age'])
+        source_reliability = float(config['source_reliability'])
+
+        gamma_time = (
+            0.0
+            if not np.isfinite(age) or age > valid_age
+            else float(2 ** (-max(age, 0.0) / half_life))
+        )
+        gamma_quality = float(
+            math.sqrt(max(coverage * completeness * source_reliability, 0.0))
+        )
+        gamma = gamma_time * gamma_quality
+        stale = int(not np.isfinite(age) or age > valid_age)
+
+        families[name] = {
+            'age_days': None if not np.isfinite(age) else age,
+            'coverage': coverage,
+            'completeness': completeness,
+            'gamma_time': gamma_time,
+            'gamma_quality': gamma_quality,
+            'gamma': gamma,
+            'stale': stale,
+        }
+
+    streams = {}
+
     for stream in BUNDLE['streams']:
-        fs=[f for f,c in reg.items() if c['stream']==stream]
-        ws=np.array([reg[f]['criticality'] for f in fs],float); ws=ws/ws.sum()
-        for k in ['coverage','completeness','gamma_time','gamma_quality','gamma']:
-            out.setdefault(stream,{})[k]=float(sum(fam[f][k]*w for f,w in zip(fs,ws)))
-        out[stream]['stale']=int(all(fam[f]['stale']==1 for f in fs))
-    return {'version':BUNDLE['tvl_version'],'streams':out,'families':fam}
+        stream_families = [
+            family
+            for family, config in registry.items()
+            if config['stream'] == stream
+        ]
+        weights = np.array(
+            [registry[family]['criticality'] for family in stream_families],
+            dtype=float,
+        )
+        weights = weights / weights.sum()
+
+        streams[stream] = {
+            metric: float(
+                sum(
+                    families[family][metric] * weight
+                    for family, weight in zip(stream_families, weights)
+                )
+            )
+            for metric in [
+                'coverage',
+                'completeness',
+                'gamma_time',
+                'gamma_quality',
+                'gamma',
+            ]
+        }
+        streams[stream]['stale'] = int(
+            all(families[family]['stale'] == 1 for family in stream_families)
+        )
+
+    return {
+        'version': BUNDLE['tvl_version'],
+        'streams': streams,
+        'families': families,
+    }

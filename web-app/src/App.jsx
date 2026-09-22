@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DoctorDashboard from "./Pages/DoctorDash/Doctordashboard";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+import API_URL from "./config/api";
 
 function AuthPage() {
   const [mode, setMode] = useState("login");

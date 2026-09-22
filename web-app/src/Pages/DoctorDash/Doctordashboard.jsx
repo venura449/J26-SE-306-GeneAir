@@ -26,6 +26,7 @@ import {
 import { motion } from "motion/react";
 import { useState } from "react";
 import logo from "../../assets/logo.png";
+import API_URL from "../../config/api";
 
 import {
   AreaChart,
@@ -127,7 +128,11 @@ const chartData = [
 function DoctorDashboard() {
   const logout = async () => {
     const token = localStorage.getItem("geneair_token");
-    if (token) await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:4000/api"}/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    if (token)
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
     localStorage.removeItem("geneair_token");
     window.location.href = "/";
   };
@@ -195,7 +200,14 @@ function DoctorDashboard() {
             </button>
 
             <div className="topbar-profile">
-              <button className="logout-button" onClick={logout} title="Sign out"><LogOut size={16} /> <span>Logout</span></button><div className="topbar-avatar">DR</div>
+              <button
+                className="logout-button"
+                onClick={logout}
+                title="Sign out"
+              >
+                <LogOut size={16} /> <span>Logout</span>
+              </button>
+              <div className="topbar-avatar">DR</div>
               <div className="topbar-profile-text">
                 <strong>Dr. Anderson</strong>
                 <span>Pulmonologist</span>

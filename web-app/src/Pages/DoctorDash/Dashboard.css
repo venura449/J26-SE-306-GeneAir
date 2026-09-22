@@ -258,6 +258,8 @@ body {
   border-radius: 16px;
   padding: 6px 12px 6px 6px;
 }
+.logout-button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; color: #334155; background: #fff; font-size: 12px; }
+.logout-button:hover { color: #b42318; border-color: #f0b8b3; background: #fff7f6; }
 
 .topbar-avatar {
   width: 40px;

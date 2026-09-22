@@ -9,9 +9,6 @@ class PredictRequest(BaseModel):
     stream_features: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     tvl_sources: Optional[Dict[str, Dict[str, Any]]] = None
 
-@app.get('/')
-def root():
-    return {'service':'GeneAir Component 01','model_version':BUNDLE['model_version'],'architecture':BUNDLE['architecture']}
 
 @app.get('/health')
 def health():
@@ -19,7 +16,7 @@ def health():
 
 @app.get('/model-info')
 def model_info():
-    return {'model_version':BUNDLE['model_version'],'architecture':BUNDLE['architecture'],'iot_contract':BUNDLE['iot_contract'],'stream_features':BUNDLE['stream_features'],'threshold_demo':BUNDLE['threshold']}
+    return {'model_version':BUNDLE['model_version'],'architecture':BUNDLE['architecture'],'stream_features':BUNDLE['stream_features'],'threshold_demo':BUNDLE['threshold']}
 
 @app.post('/predict')
 def predict(req: PredictRequest):

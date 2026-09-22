@@ -41,6 +41,9 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Generated model artifacts
+/ai-services/model/
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
@@ -160,6 +163,8 @@ android/build/
 ios/Pods/
 ios/build/
 
+ai-services/model/*
+
 # Project build and staging output
 .dist/
 **/dist/
@@ -181,3 +186,11 @@ Desktop.ini
 *.temp
 *.swp
 *.swo
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+.venv/
+

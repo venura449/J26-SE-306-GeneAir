@@ -1,4 +1,5 @@
 :root {
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --ink: #142544;
   --muted: #718096;
   --line: #e6e9ef;

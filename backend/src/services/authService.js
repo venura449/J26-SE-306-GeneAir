@@ -7,7 +7,19 @@ const Session = require('../models/Session');
 const jwtSecret = process.env.JWT_SECRET;
 const sessionDurationMs = 7 * 24 * 60 * 60 * 1000;
 
-function publicUser(user) { return { id: user.id, name: user.name, email: user.email }; }
+function publicUser(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    countryCode: user.countryCode || '+1',
+    phone: user.phone || '',
+    specialty: user.specialty || '',
+    organization: user.organization || '',
+    bio: user.bio || '',
+    profileImage: user.profileImage || '',
+  };
+}
 
 async function createSession(user) {
   const tokenId = crypto.randomUUID();
@@ -29,7 +41,19 @@ async function login(email, password) {
   return createSession(user);
 }
 
+async function getProfile(userId) {
+  const user = await User.findById(userId);
+  if (!user) throw Object.assign(new Error('User account not found.'), { status: 404 });
+  return publicUser(user);
+}
+
+async function updateProfile(userId, profile) {
+  const user = await User.findByIdAndUpdate(userId, profile, { new: true, runValidators: true });
+  if (!user) throw Object.assign(new Error('User account not found.'), { status: 404 });
+  return publicUser(user);
+}
+
 async function revokeSession(tokenId) { await Session.deleteOne({ tokenId }); }
 async function isSessionActive(tokenId) { return Boolean(await Session.exists({ tokenId, expiresAt: { $gt: new Date() } })); }
 
-module.exports = { register, login, revokeSession, isSessionActive };
+module.exports = { register, login, getProfile, updateProfile, revokeSession, isSessionActive };

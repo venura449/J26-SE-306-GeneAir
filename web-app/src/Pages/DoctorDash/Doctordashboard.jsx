@@ -21,10 +21,15 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
+  UserRound,
+  Camera,
+  Save,
+  X,
 } from "lucide-react";
 
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Cropper from "react-easy-crop";
 import logo from "../../assets/logo.png";
 import API_URL from "../../config/api";
 
@@ -47,6 +52,21 @@ const sidebarItems = [
   { id: 4, label: "Alerts", icon: TriangleAlert },
   { id: 5, label: "Reports", icon: BarChart3 },
   { id: 6, label: "Settings", icon: Settings },
+  { id: 7, label: "Profile", icon: UserRound },
+];
+
+const countryCodes = [
+  ["+1", "United States / Canada"],
+  ["+44", "United Kingdom"],
+  ["+61", "Australia"],
+  ["+91", "India"],
+  ["+94", "Sri Lanka"],
+  ["+27", "South Africa"],
+  ["+33", "France"],
+  ["+49", "Germany"],
+  ["+81", "Japan"],
+  ["+86", "China"],
+  ["+971", "United Arab Emirates"],
 ];
 
 const patients = [
@@ -125,7 +145,78 @@ const chartData = [
   { day: "Sun", patients: 8 },
 ];
 
+function createCroppedImage(imageSource, pixelCrop, fileType) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = pixelCrop.width;
+      canvas.height = pixelCrop.height;
+      const context = canvas.getContext("2d");
+      context.drawImage(
+        image,
+        pixelCrop.x,
+        pixelCrop.y,
+        pixelCrop.width,
+        pixelCrop.height,
+        0,
+        0,
+        pixelCrop.width,
+        pixelCrop.height,
+      );
+      canvas.toBlob((blob) => {
+        if (blob)
+          resolve(
+            new File([blob], "profile-photo.jpg", {
+              type: fileType || "image/jpeg",
+            }),
+          );
+        else reject(new Error("Unable to crop this image."));
+      }, fileType || "image/jpeg");
+    };
+    image.onerror = reject;
+    image.src = imageSource;
+  });
+}
+
 function DoctorDashboard() {
+  const [profile, setProfile] = useState(() => {
+    try {
+      return {
+        name: "Dr. Anderson",
+        email: "",
+        countryCode: "+1",
+        phone: "",
+        specialty: "",
+        organization: "",
+        bio: "",
+        profileImage: "",
+        ...JSON.parse(localStorage.getItem("geneair_user") || "{}"),
+      };
+    } catch {
+      return {
+        name: "Dr. Anderson",
+        email: "",
+        countryCode: "+1",
+        phone: "",
+        specialty: "",
+        organization: "",
+        bio: "",
+        profileImage: "",
+      };
+    }
+  });
+  const [savedProfile, setSavedProfile] = useState(profile);
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileImagePreview, setProfileImagePreview] = useState("");
+  const [cropSource, setCropSource] = useState("");
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [isCountryMenuOpen, setIsCountryMenuOpen] = useState(false);
   const logout = async () => {
     const token = localStorage.getItem("geneair_token");
     if (token)
@@ -134,9 +225,123 @@ function DoctorDashboard() {
         headers: { Authorization: `Bearer ${token}` },
       }).catch(() => {});
     localStorage.removeItem("geneair_token");
+    localStorage.removeItem("geneair_user");
     window.location.href = "/";
   };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const loadProfile = async () => {
+    const token = localStorage.getItem("geneair_token");
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_URL}/auth/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Unable to load your profile.");
+      const data = await response.json();
+      setProfile(data);
+      setSavedProfile(data);
+      localStorage.setItem("geneair_user", JSON.stringify(data));
+    } catch (error) {
+      setProfileMessage(error.message);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const profileImageUrl = profile.profileImage
+    ? `${API_URL.replace(/\/api$/, "")}${profile.profileImage}`
+    : "";
+  const visibleProfileImage = profileImagePreview || profileImageUrl;
+  const initials = profile.name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((name) => name[0])
+    .join("")
+    .toUpperCase();
+  const updateProfileField = (field, value) =>
+    setProfile((current) => ({ ...current, [field]: value }));
+  const selectProfileImage = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setCropSource(URL.createObjectURL(file));
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    event.target.value = "";
+  };
+  const cancelCrop = () => {
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setCropSource("");
+  };
+  const applyCrop = async () => {
+    try {
+      const croppedFile = await createCroppedImage(
+        cropSource,
+        croppedAreaPixels,
+        "image/jpeg",
+      );
+      setProfileImageFile(croppedFile);
+      setProfileImagePreview(URL.createObjectURL(croppedFile));
+      cancelCrop();
+    } catch (error) {
+      setProfileMessage(error.message);
+    }
+  };
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    const formData = new FormData();
+    ["name", "countryCode", "phone", "specialty", "organization", "bio"].forEach((field) =>
+      formData.append(field, profile[field] || ""),
+    );
+    if (profileImageFile) formData.append("profileImage", profileImageFile);
+    setProfileBusy(true);
+    setProfileMessage("");
+    try {
+      const response = await fetch(`${API_URL}/auth/profile`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("geneair_token")}`,
+        },
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.message || "Unable to save your profile.");
+      setProfile(data);
+      setSavedProfile(data);
+      localStorage.setItem("geneair_user", JSON.stringify(data));
+      if (profileImagePreview) URL.revokeObjectURL(profileImagePreview);
+      setProfileImagePreview("");
+      setProfileImageFile(null);
+      setProfileMessage("Profile saved successfully.");
+      setIsProfileOpen(false);
+    } catch (error) {
+      setProfileMessage(error.message);
+    } finally {
+      setProfileBusy(false);
+    }
+  };
+  const openProfile = () => {
+    setProfile(savedProfile);
+    setProfileImageFile(null);
+    setProfileImagePreview("");
+    setProfileMessage("");
+    setIsProfileOpen(true);
+    loadProfile();
+  };
+  const cancelProfile = () => {
+    if (profileImagePreview) URL.revokeObjectURL(profileImagePreview);
+    if (cropSource) URL.revokeObjectURL(cropSource);
+    setProfile(savedProfile);
+    setProfileImageFile(null);
+    setProfileImagePreview("");
+    setCropSource("");
+    setProfileMessage("");
+    setIsProfileOpen(false);
+  };
 
   return (
     <div
@@ -174,6 +379,9 @@ function DoctorDashboard() {
               <button
                 key={item.id}
                 className={`sidebar-nav-item ${item.active ? "active" : ""}`}
+                onClick={() =>
+                  item.label === "Profile" && openProfile()
+                }
               >
                 <Icon size={18} />
                 <span>{item.label}</span>
@@ -207,10 +415,22 @@ function DoctorDashboard() {
               >
                 <LogOut size={16} /> <span>Logout</span>
               </button>
-              <div className="topbar-avatar">DR</div>
+              <button
+                className="topbar-avatar"
+                type="button"
+                aria-label="Open profile"
+                title="Open profile"
+                onClick={openProfile}
+              >
+                {visibleProfileImage ? (
+                  <img src={visibleProfileImage} alt="Profile" />
+                ) : (
+                  initials || "DR"
+                )}
+              </button>
               <div className="topbar-profile-text">
-                <strong>Dr. Anderson</strong>
-                <span>Pulmonologist</span>
+                <strong>{profile.name}</strong>
+                <span>{profile.specialty || "GeneAir clinician"}</span>
               </div>
             </div>
           </div>
@@ -224,7 +444,7 @@ function DoctorDashboard() {
           >
             <div>
               <p className="dashboard-label">DOCTOR WORKSPACE</p>
-              <h1>Good morning, Dr. Anderson</h1>
+              <h1>Good morning, {profile.name}</h1>
               <p className="dashboard-description">
                 Review asthma status, risk levels, and recent patient updates.
               </p>
@@ -242,6 +462,235 @@ function DoctorDashboard() {
               </button>
             </div>
           </motion.div>
+
+          {isProfileOpen && (
+            <div
+              className="profile-overlay"
+              onClick={cancelProfile}
+            >
+              <section
+                className="doctor-card profile-section"
+                id="profile-section"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="doctor-card-header">
+                  <div>
+                    <h2>Your profile</h2>
+                    <p>
+                      Keep your professional details current for your care team.
+                    </p>
+                  </div>
+                  <button
+                    className="profile-close-button"
+                    type="button"
+                    aria-label="Close profile"
+                    title="Close profile"
+                    onClick={cancelProfile}
+                  >
+                    <X size={19} />
+                  </button>
+                </div>
+
+                <form className="profile-form" onSubmit={saveProfile}>
+                  <div className="profile-photo-column">
+                    <div className="profile-photo">
+                      {visibleProfileImage ? (
+                        <img
+                          src={visibleProfileImage}
+                          alt={`${profile.name} profile`}
+                        />
+                      ) : (
+                        initials || <UserRound size={32} />
+                      )}
+                    </div>
+                    <label className="profile-photo-button">
+                      <Camera size={15} />
+                      Change photo
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={selectProfileImage}
+                      />
+                    </label>
+                    <small>PNG, JPG, WEBP or GIF up to 5 MB</small>
+                  </div>
+
+                  <div className="profile-fields">
+                    <label>
+                      Full name
+                      <input
+                        value={profile.name}
+                        onChange={(event) =>
+                          updateProfileField("name", event.target.value)
+                        }
+                        required
+                      />
+                    </label>
+                    <label>
+                      Email address
+                      <input value={profile.email} readOnly />
+                    </label>
+                    <label className="profile-phone-field">
+                      Phone number
+                      <span className="phone-input-group">
+                        <span className="country-code-picker">
+                          <button
+                            className="country-select-button"
+                            type="button"
+                            aria-label="Country calling code"
+                            aria-expanded={isCountryMenuOpen}
+                            onClick={() => setIsCountryMenuOpen((open) => !open)}
+                          >
+                            {profile.countryCode || "+1"}
+                          </button>
+                          {isCountryMenuOpen && (
+                            <span className="country-code-menu">
+                              {countryCodes.map(([code, country]) => (
+                                <button
+                                  key={code}
+                                  type="button"
+                                  onClick={() => {
+                                    updateProfileField("countryCode", code);
+                                    setIsCountryMenuOpen(false);
+                                  }}
+                                >
+                                  <strong>{code}</strong>
+                                  <span>{country}</span>
+                                </button>
+                              ))}
+                            </span>
+                          )}
+                        </span>
+                        <input
+                          value={profile.phone}
+                          onChange={(event) =>
+                            updateProfileField("phone", event.target.value)
+                          }
+                          placeholder="555 000 0000"
+                        />
+                      </span>
+                    </label>
+                    <label>
+                      Specialty
+                      <input
+                        value={profile.specialty}
+                        onChange={(event) =>
+                          updateProfileField("specialty", event.target.value)
+                        }
+                        placeholder="Pulmonologist"
+                      />
+                    </label>
+                    <label className="profile-field-wide">
+                      Organization
+                      <input
+                        value={profile.organization}
+                        onChange={(event) =>
+                          updateProfileField("organization", event.target.value)
+                        }
+                        placeholder="GeneAir Care Center"
+                      />
+                    </label>
+                    <label className="profile-field-wide">
+                      About you
+                      <textarea
+                        value={profile.bio}
+                        onChange={(event) =>
+                          updateProfileField("bio", event.target.value)
+                        }
+                        rows="3"
+                        placeholder="Share a short professional bio."
+                      />
+                    </label>
+                    <div className="profile-actions">
+                      <button
+                        className="doctor-secondary-button profile-cancel-button"
+                        type="button"
+                        onClick={cancelProfile}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="doctor-primary-button profile-save-button"
+                        type="submit"
+                        disabled={profileBusy}
+                      >
+                        <Save size={17} />
+                        {profileBusy ? "Saving..." : "Save profile"}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+                {cropSource && (
+                  <div className="crop-overlay" onClick={cancelCrop}>
+                    <div
+                      className="crop-dialog"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className="crop-dialog-header">
+                        <div>
+                          <h3>Crop profile photo</h3>
+                          <p>Drag to position your photo inside the square.</p>
+                        </div>
+                        <button
+                          className="profile-close-button"
+                          type="button"
+                          aria-label="Cancel crop"
+                          onClick={cancelCrop}
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                      <div className="crop-area">
+                        <Cropper
+                          image={cropSource}
+                          crop={crop}
+                          zoom={zoom}
+                          aspect={1}
+                          cropShape="rect"
+                          showGrid={false}
+                          onCropChange={setCrop}
+                          onZoomChange={setZoom}
+                          onCropComplete={(_, pixels) =>
+                            setCroppedAreaPixels(pixels)
+                          }
+                        />
+                      </div>
+                      <label className="crop-zoom">
+                        Zoom
+                        <input
+                          type="range"
+                          min="1"
+                          max="3"
+                          step="0.1"
+                          value={zoom}
+                          onChange={(event) =>
+                            setZoom(Number(event.target.value))
+                          }
+                        />
+                      </label>
+                      <div className="crop-actions">
+                        <button
+                          className="doctor-secondary-button"
+                          type="button"
+                          onClick={cancelCrop}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="doctor-primary-button"
+                          type="button"
+                          onClick={applyCrop}
+                          disabled={!croppedAreaPixels}
+                        >
+                          Use photo
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
 
           <section className="doctor-stat-grid">
             <StatCard

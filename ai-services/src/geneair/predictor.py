@@ -8,6 +8,9 @@ import joblib
 ROOT=Path(__file__).resolve().parents[2]
 BUNDLE=joblib.load(ROOT/'model'/'GeneAir_Component01_RawOnly_Bundle.joblib')
 
+if not hasattr(BUNDLE['calibrator'], 'multi_class'):
+    BUNDLE['calibrator'].multi_class='auto'
+
 def _logit(p):
     p=np.clip(np.asarray(p,dtype=float),1e-6,1-1e-6)
     return np.log(p/(1-p))

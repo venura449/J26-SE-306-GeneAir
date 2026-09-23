@@ -30,6 +30,8 @@ function AuthPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
       if (data.token) localStorage.setItem("geneair_token", data.token);
+      if (data.user)
+        localStorage.setItem("geneair_user", JSON.stringify(data.user));
       setMessage(
         mode === "forgot"
           ? data.message

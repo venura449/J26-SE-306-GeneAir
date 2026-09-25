@@ -1,0 +1,15 @@
+const express = require('express');
+const path = require('path');
+const multer = require('multer');
+const controller = require('../controllers/mobileAuthController');
+const authenticate = require('../middleware/authenticate');
+const router = express.Router();
+const storage = multer.diskStorage({ destination: path.resolve(__dirname, '../../uploads'), filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname).toLowerCase()}`) });
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: (_req, file, cb) => cb(null, /^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) });
+router.post('/register', controller.mobileRegister);
+router.post('/login', controller.mobileLogin);
+router.post('/forgot-password', controller.mobileForgotPassword);
+router.post('/logout', authenticate, controller.mobileLogout);
+router.get('/profile', authenticate, controller.mobileProfile);
+router.patch('/profile', authenticate, upload.single('profileImage'), controller.mobileUpdateProfile);
+module.exports = router;

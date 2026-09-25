@@ -255,7 +255,7 @@ function DoctorDashboard() {
     ? `${API_URL.replace(/\/api$/, "")}${profile.profileImage}`
     : "";
   const visibleProfileImage = profileImagePreview || profileImageUrl;
-  const initials = profile.name
+  const initials = (profile.name || "Doctor")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -756,8 +756,8 @@ function DoctorDashboard() {
                       <span>{patient.checkIn}</span>
                     </div>
 
-                    <div className="patient-avatar">
-                      {patient.patient
+                      <div className="patient-avatar">
+                      {(patient.patient || "Patient")
                         .split(" ")
                         .map((name) => name[0])
                         .join("")}

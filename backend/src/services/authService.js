@@ -18,6 +18,13 @@ function publicUser(user) {
     organization: user.organization || '',
     bio: user.bio || '',
     profileImage: user.profileImage || '',
+    dateOfBirth: user.dateOfBirth || '',
+    static_bmi_range: user.static_bmi_range || 'Normal',
+    static_age_diagnosed_range: user.static_age_diagnosed_range || '0-6yo',
+    static_max_pef_expected: user.static_max_pef_expected ?? 490,
+    static_pack_years: user.static_pack_years ?? 0,
+    static_severity: user.static_severity || 'Moderate',
+    static_pef_best: user.static_pef_best ?? 450,
   };
 }
 

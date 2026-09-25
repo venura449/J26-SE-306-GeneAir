@@ -16,7 +16,7 @@ async function mobileForgotPassword(req, res) { if (!req.body.email?.includes('@
 async function mobileProfile(req, res) { try { return res.json(await authService.getProfile(req.user.sub)); } catch (error) { return res.status(error.status || 500).json({ message: 'Unable to load your profile.' }); } }
 async function mobileUpdateProfile(req, res) { try {
   const profile = {
-    name: req.body.name?.trim(), dateOfBirth: req.body.dateOfBirth?.trim() || '',
+    name: req.body.name?.trim(), dateOfBirth: req.body.dateOfBirth?.trim() || '', bmi: Number(req.body.bmi) || 0,
     static_bmi_range: req.body.static_bmi_range?.trim() || 'Normal', static_age_diagnosed_range: req.body.static_age_diagnosed_range?.trim() || '0-6yo',
     static_max_pef_expected: Number(req.body.static_max_pef_expected) || 0, static_pack_years: Number(req.body.static_pack_years) || 0,
     static_severity: req.body.static_severity?.trim() || 'Moderate', static_pef_best: Number(req.body.static_pef_best) || 0,

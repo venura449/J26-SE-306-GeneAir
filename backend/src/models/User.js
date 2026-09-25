@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
   bio: { type: String, trim: true, default: '' },
   profileImage: { type: String, default: '' },
   dateOfBirth: { type: String, default: '' },
+  bmi: { type: Number, default: 0 },
   static_bmi_range: { type: String, default: 'Normal' },
   static_age_diagnosed_range: { type: String, default: '0-6yo' },
   static_max_pef_expected: { type: Number, default: 490 },

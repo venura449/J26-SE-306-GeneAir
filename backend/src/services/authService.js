@@ -19,6 +19,7 @@ function publicUser(user) {
     bio: user.bio || '',
     profileImage: user.profileImage || '',
     dateOfBirth: user.dateOfBirth || '',
+    bmi: user.bmi ?? 0,
     static_bmi_range: user.static_bmi_range || 'Normal',
     static_age_diagnosed_range: user.static_age_diagnosed_range || '0-6yo',
     static_max_pef_expected: user.static_max_pef_expected ?? 490,

@@ -24,5 +24,16 @@ async function mobileUpdateProfile(req, res) { try {
   if (!profile.name) return res.status(400).json({ message: 'Your name is required.' });
   if (req.file) profile.profileImage = `/uploads/${req.file.filename}`;
   return res.json(await authService.updateProfile(req.user.sub, profile));
-} catch (error) { return res.status(error.status || 500).json({ message: 'Unable to save your mobile profile.' }); } }
-module.exports = { mobileRegister, mobileLogin, mobileLogout, mobileForgotPassword, mobileProfile, mobileUpdateProfile };
+} catch (error) { console.error('Mobile profile update failed:', error); return res.status(error.status || 500).json({ message: error.status ? error.message : 'Unable to save your mobile profile.' }); } }
+
+const WatchData = require('../models/WatchData');
+async function mobileSyncWatch(req, res) {
+  try {
+    const data = new WatchData({ userId: req.user.id, ...req.body });
+    await data.save();
+    return res.status(201).json(data);
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to save watch data.' });
+  }
+}
+module.exports = { mobileSyncWatch, mobileRegister, mobileLogin, mobileLogout, mobileForgotPassword, mobileProfile, mobileUpdateProfile };

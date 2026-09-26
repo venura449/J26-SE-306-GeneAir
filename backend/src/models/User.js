@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema({
   static_pack_years: { type: Number, default: 0 },
   static_severity: { type: String, default: 'Moderate' },
   static_pef_best: { type: Number, default: 450 },
+  patients: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  doctor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

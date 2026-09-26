@@ -35,7 +35,10 @@ type AuthResponse = { token: string; user: User };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response;
-  const isMultipart = typeof options.body === "object" && options.body !== null && "append" in options.body;
+  const isMultipart =
+    typeof options.body === "object" &&
+    options.body !== null &&
+    "append" in options.body;
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...options,
@@ -84,7 +87,10 @@ export async function updateProfile(profile: Partial<User>, imageUri?: string) {
   if (!token) throw new Error("Please sign in again.");
   if (imageUri) await SecureStore.setItemAsync(localPhotoKey, imageUri);
   const localPhoto = await SecureStore.getItemAsync(localPhotoKey);
-  const savedProfile = { ...profile, ...(localPhoto ? { profileImage: localPhoto } : {}) };
+  const savedProfile = {
+    ...profile,
+    ...(localPhoto ? { profileImage: localPhoto } : {}),
+  };
   const result = await request<User>("/mobile/auth/profile", {
     method: "PATCH",
     body: JSON.stringify(savedProfile),
@@ -125,7 +131,7 @@ export async function syncWatchData(data: any) {
     await request("/mobile/auth/watch-sync", {
       method: "POST",
       body: JSON.stringify(data),
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
   } catch (e) {
     console.log("Watch sync error", e);

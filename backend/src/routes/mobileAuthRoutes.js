@@ -12,4 +12,5 @@ router.post('/forgot-password', controller.mobileForgotPassword);
 router.post('/logout', authenticate, controller.mobileLogout);
 router.get('/profile', authenticate, controller.mobileProfile);
 router.patch('/profile', authenticate, upload.single('profileImage'), controller.mobileUpdateProfile);
+router.post('/watch-sync', authenticate, controller.mobileSyncWatch);
 module.exports = router;

@@ -27,10 +27,27 @@ async function mobileUpdateProfile(req, res) { try {
 } catch (error) { console.error('Mobile profile update failed:', error); return res.status(error.status || 500).json({ message: error.status ? error.message : 'Unable to save your mobile profile.' }); } }
 
 const WatchData = require('../models/WatchData');
+function optionalNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
 async function mobileSyncWatch(req, res) {
   try {
-    const data = new WatchData({ userId: req.user.id, ...req.body });
-    await data.save();
+    const body = req.body || {};
+    const data = await WatchData.create({
+      userId: req.user.sub,
+      heartRate: optionalNumber(body.heartRate),
+      steps: optionalNumber(body.steps),
+      lightLux: optionalNumber(body.lightLux),
+      gyroX: optionalNumber(body.gyroX),
+      gyroY: optionalNumber(body.gyroY),
+      gyroZ: optionalNumber(body.gyroZ),
+      spo2: optionalNumber(body.spo2),
+      bodyTemp: optionalNumber(body.bodyTemp),
+      latitude: optionalNumber(body.latitude),
+      longitude: optionalNumber(body.longitude),
+      locationName: typeof body.locationName === 'string' ? body.locationName.slice(0, 160) : '',
+    });
     return res.status(201).json(data);
   } catch (error) {
     return res.status(500).json({ message: 'Unable to save watch data.' });

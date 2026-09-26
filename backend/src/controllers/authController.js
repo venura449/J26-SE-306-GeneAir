@@ -22,4 +22,105 @@ async function updateProfile(request, response) {
     } catch (error) { return response.status(error.status || 500).json({ message: error.status ? error.message : 'Unable to save your profile.' }); }
 }
 
-module.exports = { register, login, logout, forgotPassword, getProfile, updateProfile };
+
+const User = require('../models/User');
+const WatchData = require('../models/WatchData');
+const mongoose = require('mongoose');
+
+async function searchPatients(req, res) {
+  try {
+    const q = req.query.q || '';
+    if (!q.trim()) return res.json([]);
+    const users = await User.find({
+      name: { $regex: q, $options: 'i' },
+      _id: { $ne: req.user.sub }
+    }).select('name email profileImage phone');
+    return res.json(users);
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to search patients' });
+  }
+}
+
+async function addPatient(req, res) {
+  try {
+    const { patientId } = req.body;
+    if (!patientId) return res.status(400).json({ message: 'Patient ID required' });
+    
+    // Add to doctor's list
+    await User.findByIdAndUpdate(req.user.sub, {
+      $addToSet: { patients: patientId }
+    });
+    
+    // Optional: Add to patient's doctor field
+    await User.findByIdAndUpdate(patientId, {
+      doctor: req.user.sub
+    });
+
+    return res.json({ message: 'Patient added successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to add patient' });
+  }
+}
+
+async function removePatient(req, res) {
+  try {
+    const { patientId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(patientId)) return res.status(400).json({ message: 'Invalid patient' });
+    const result = await User.findOneAndUpdate(
+      { _id: req.user.sub, patients: patientId },
+      { $pull: { patients: patientId } },
+    );
+    if (!result) return res.status(404).json({ message: 'Patient is not on your list' });
+    await User.findByIdAndUpdate(patientId, { $unset: { doctor: 1 } });
+    return res.json({ message: 'Patient removed successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to remove patient' });
+  }
+}
+
+async function getPatients(req, res) {
+  try {
+    const doctor = await User.findById(req.user.sub).populate(
+      'patients',
+      'name email profileImage phone dateOfBirth bmi static_severity static_bmi_range static_age_diagnosed_range static_pef_best static_max_pef_expected static_pack_years createdAt',
+    );
+    return res.json(doctor.patients || []);
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to fetch patients' });
+  }
+}
+
+async function getPatientRecord(req, res) {
+  try {
+    const patientId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(patientId)) {
+      return res.status(400).json({ message: 'Invalid patient' });
+    }
+    const doctor = await User.findById(req.user.sub).select('patients');
+    if (!doctor) return res.status(404).json({ message: 'Account not found' });
+    const assigned = doctor.patients.some((id) => String(id) === String(patientId));
+    if (!assigned) return res.status(403).json({ message: 'This patient is not on your list.' });
+
+    const patient = await User.findById(patientId).select('-passwordHash -patients');
+    if (!patient) return res.status(404).json({ message: 'Patient not found' });
+
+    const history = await WatchData.find({ userId: patientId }).sort({ createdAt: 1 }).limit(400).lean();
+    const latest = history.length ? history[history.length - 1] : null;
+    const locations = history.filter(
+      (row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude),
+    );
+
+    return res.json({ patient, latest, history, locations });
+  } catch (error) {
+    console.error('Unable to load patient record:', error);
+    return res.status(500).json({ message: 'Unable to load patient record' });
+  }
+}
+
+module.exports = {
+  searchPatients,
+  addPatient,
+  removePatient,
+  getPatients,
+  getPatientRecord,
+  register, login, logout, forgotPassword, getProfile, updateProfile };

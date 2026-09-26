@@ -25,6 +25,7 @@ import {
   Camera,
   Save,
   X,
+  Trash2,
 } from "lucide-react";
 
 import { motion } from "motion/react";
@@ -41,6 +42,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  Legend,
 } from "recharts";
 
 import "./Dashboard.css";
@@ -229,6 +235,108 @@ function DoctorDashboard() {
     window.location.href = "/";
   };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [activeSection, setActiveSection] = useState("Dashboard");
+  const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false);
+  const [patientSearchQuery, setPatientSearchQuery] = useState("");
+  const [patientSearchResults, setPatientSearchResults] = useState([]);
+  const [doctorPatients, setDoctorPatients] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patientRecord, setPatientRecord] = useState(null);
+  const [isRecordLoading, setIsRecordLoading] = useState(false);
+  const [historySearch, setHistorySearch] = useState("");
+  const [comparisonMetric, setComparisonMetric] = useState("spo2");
+
+
+  
+  const fetchPatients = async () => {
+    const token = localStorage.getItem("geneair_token");
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/auth/patients`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setDoctorPatients(await res.json());
+    } catch (e) { console.error(e); }
+  };
+
+  const handleSearchPatients = async (query) => {
+    setPatientSearchQuery(query);
+    if (!query.trim()) { setPatientSearchResults([]); return; }
+    setIsSearching(true);
+    const token = localStorage.getItem("geneair_token");
+    try {
+      const res = await fetch(`${API_URL}/auth/patients/search?q=${encodeURIComponent(query)}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setPatientSearchResults(await res.json());
+    } catch (e) { console.error(e); } finally { setIsSearching(false); }
+  };
+
+  const addPatient = async (patientId) => {
+    const token = localStorage.getItem("geneair_token");
+    try {
+      const res = await fetch(`${API_URL}/auth/patients`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ patientId })
+      });
+      if (res.ok) {
+        closeAddPatientModal();
+        await fetchPatients();
+        setSuccessMessage("Patient added successfully");
+        setTimeout(() => setSuccessMessage(""), 3500);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const removePatient = async (patient) => {
+    if (!window.confirm(`Remove ${patient.name || "this patient"} from your patient list?`)) return;
+    const token = localStorage.getItem("geneair_token");
+    const res = await fetch(`${API_URL}/auth/patients/${patient._id}`, {
+      method: "DELETE", headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      setDoctorPatients((current) => current.filter((item) => item._id !== patient._id));
+      setSuccessMessage("Patient removed successfully");
+      setTimeout(() => setSuccessMessage(""), 3500);
+    }
+  };
+
+  const openPatientRecord = async (patient) => {
+    setSelectedPatient(patient);
+    setPatientRecord(null);
+    setIsRecordLoading(true);
+    setHistorySearch("");
+    try {
+      const token = localStorage.getItem("geneair_token");
+      const res = await fetch(`${API_URL}/auth/patients/${patient._id}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setPatientRecord(await res.json());
+    } finally { setIsRecordLoading(false); }
+  };
+
+  useEffect(() => {
+    if (!selectedPatient) return undefined;
+    const refreshPatientRecord = async () => {
+      try {
+        const token = localStorage.getItem("geneair_token");
+        const res = await fetch(`${API_URL}/auth/patients/${selectedPatient._id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) setPatientRecord(await res.json());
+      } catch (error) {
+        console.error("Unable to refresh patient history:", error);
+      }
+    };
+    const intervalId = window.setInterval(refreshPatientRecord, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [selectedPatient]);
+
+  useEffect(() => { fetchPatients(); }, []);
+
+  const closeAddPatientModal = () => {
+    setIsAddPatientModalOpen(false);
+    setPatientSearchQuery("");
+    setPatientSearchResults([]);
+    setIsSearching(false);
+  };
 
   const loadProfile = async () => {
     const token = localStorage.getItem("geneair_token");
@@ -378,10 +486,11 @@ function DoctorDashboard() {
             return (
               <button
                 key={item.id}
-                className={`sidebar-nav-item ${item.active ? "active" : ""}`}
-                onClick={() =>
-                  item.label === "Profile" && openProfile()
-                }
+                className={`sidebar-nav-item ${(item.label === activeSection || (item.label === "Dashboard" && activeSection === "Dashboard")) ? "active" : ""}`}
+                onClick={() => {
+                  if (item.label === "Profile") openProfile();
+                  else if (["Dashboard", "Patients"].includes(item.label)) setActiveSection(item.label);
+                }}
               >
                 <Icon size={18} />
                 <span>{item.label}</span>
@@ -444,25 +553,26 @@ function DoctorDashboard() {
           >
             <div>
               <p className="dashboard-label">DOCTOR WORKSPACE</p>
-              <h1>Good morning, {profile.name}</h1>
+              <h1>{activeSection === "Patients" ? "Patients" : `Good morning, ${profile.name}`}</h1>
               <p className="dashboard-description">
-                Review asthma status, risk levels, and recent patient updates.
+                {activeSection === "Patients" ? "Manage your patients and review their monitoring history." : "Review asthma status, risk levels, and recent patient updates."}
               </p>
             </div>
 
             <div className="doctor-header-actions">
-              <button className="doctor-secondary-button">
+              <button className="doctor-secondary-button" type="button" onClick={() => setActiveSection("Patients")}>
                 <CalendarDays size={17} />
                 View Patient Records
               </button>
 
-              <button className="doctor-primary-button">
+              <button className="doctor-primary-button" onClick={() => setIsAddPatientModalOpen(true)}>
                 <Plus size={17} />
                 Add Patient
               </button>
             </div>
           </motion.div>
 
+          
           {isProfileOpen && (
             <div
               className="profile-overlay"
@@ -692,7 +802,7 @@ function DoctorDashboard() {
             </div>
           )}
 
-          <section className="doctor-stat-grid">
+          {activeSection === "Dashboard" && <section className="doctor-stat-grid">
             <StatCard
               icon={CalendarDays}
               title="Total Patients"
@@ -725,27 +835,28 @@ function DoctorDashboard() {
               description="this week"
               ai
             />
-          </section>
+          </section>}
 
-          <section className="doctor-main-grid">
-            <div className="doctor-card appointments-card">
+          <section className={`doctor-main-grid ${activeSection === "Patients" ? "patients-tab-layout" : "dashboard-overview-grid"}`}>
+            {activeSection === "Patients" && <div className="doctor-card appointments-card patient-list-card">
               <div className="doctor-card-header">
                 <div>
                   <h2>Patient Overview</h2>
                   <p>Recently updated asthma records</p>
                 </div>
 
-                <button className="text-button">
+                <button className="text-button" type="button" onClick={() => setActiveSection("Patients")}>
                   View all patients
                   <ChevronRight size={16} />
                 </button>
               </div>
 
               <div className="appointment-list">
-                {patients.map((patient, index) => (
+                {doctorPatients.length === 0 && <p className="add-patient-empty">No patients have been added yet.</p>}
+                {doctorPatients.map((patient, index) => (
                   <motion.div
                     className="appointment-row"
-                    key={patient.id}
+                    key={patient._id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.06 }}
@@ -753,38 +864,29 @@ function DoctorDashboard() {
                   >
                     <div className="appointment-time">
                       <Clock3 size={16} />
-                      <span>{patient.checkIn}</span>
+                      <span>Patient</span>
                     </div>
 
                       <div className="patient-avatar">
-                      {(patient.patient || "Patient")
+                      {(patient.name || "Patient")
                         .split(" ")
                         .map((name) => name[0])
                         .join("")}
                     </div>
 
                     <div className="appointment-patient">
-                      <strong>{patient.patient}</strong>
-                      <span>{patient.detail}</span>
+                      <strong>{patient.name}</strong>
+                      <span>{patient.email}</span>
                     </div>
 
-                    <span className="consultation-type">{patient.status}</span>
-
-                    <span
-                      className={`appointment-status ${patient.risk === "High risk" ? "waiting" : ""}`}
-                    >
-                      {patient.risk}
-                    </span>
-
-                    <button className="row-action">
-                      <ChevronRight size={18} />
-                    </button>
+                    <button className="row-action history-action" type="button" onClick={() => openPatientRecord(patient)}>View history <ChevronRight size={15} /></button>
+                    <button className="row-action danger-action" type="button" title="Remove patient" onClick={() => removePatient(patient)}><Trash2 size={16} /><span>Remove</span></button>
                   </motion.div>
                 ))}
               </div>
-            </div>
+            </div>}
 
-            <motion.div
+            {activeSection === "Dashboard" && <motion.div
               className="doctor-card ai-assistant-card"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -829,7 +931,7 @@ function DoctorDashboard() {
                 Open AI Assistant
                 <ArrowUpRight size={16} />
               </button>
-            </motion.div>
+            </motion.div>}
           </section>
 
           <section className="doctor-bottom-grid">
@@ -943,8 +1045,96 @@ function DoctorDashboard() {
               </div>
             </div>
           </section>
+        {selectedPatient && <div className="history-search-bar"><Search size={17} /><input value={historySearch} onChange={(event) => setHistorySearch(event.target.value)} placeholder="Search readings by time or value..." /><select value={comparisonMetric} onChange={(event) => setComparisonMetric(event.target.value)} aria-label="Compare metric"><option value="spo2">Compare SpO₂</option><option value="bodyTemp">Compare temperature</option><option value="steps">Compare steps</option><option value="lightLux">Compare light</option></select></div>}
         </main>
       </div>
+
+      {isAddPatientModalOpen && (
+        <div
+          className="profile-overlay add-patient-overlay"
+          onClick={closeAddPatientModal}
+        >
+          <section
+            className="doctor-card add-patient-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="doctor-card-header">
+              <div>
+                <h2>Add patient</h2>
+                <p>Search the directory and attach a patient to your care list.</p>
+              </div>
+              <button
+                className="profile-close-button"
+                type="button"
+                aria-label="Close add patient"
+                title="Close"
+                onClick={closeAddPatientModal}
+              >
+                <X size={19} />
+              </button>
+            </div>
+
+            <div className="add-patient-body">
+              <label className="add-patient-label">
+                Search by name
+                <span className="add-patient-search">
+                  <Search size={16} />
+                  <input
+                    type="text"
+                    placeholder="e.g. John Doe"
+                    value={patientSearchQuery}
+                    onChange={(event) => handleSearchPatients(event.target.value)}
+                    autoFocus
+                  />
+                </span>
+              </label>
+
+              <div className="add-patient-results">
+                {isSearching && (
+                  <p className="add-patient-empty">Searching directory…</p>
+                )}
+
+                {!isSearching &&
+                  patientSearchResults.map((user) => (
+                    <div key={user._id} className="add-patient-row">
+                      <div className="add-patient-identity">
+                        <div className="patient-avatar">
+                          <UserRound size={18} />
+                        </div>
+                        <div>
+                          <strong>{user.name}</strong>
+                          <span>{user.email}</span>
+                        </div>
+                      </div>
+                      <button
+                        className="doctor-primary-button"
+                        type="button"
+                        onClick={() => addPatient(user._id)}
+                      >
+                        <Plus size={15} />
+                        Add
+                      </button>
+                    </div>
+                  ))}
+
+                {!isSearching &&
+                  patientSearchQuery &&
+                  patientSearchResults.length === 0 && (
+                    <p className="add-patient-empty">No matching patients found.</p>
+                  )}
+
+                {!isSearching && !patientSearchQuery && (
+                  <p className="add-patient-empty">
+                    Start typing a name to find patients you can add.
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
+      {successMessage && <div className="success-overlay" role="status"><div className="success-message"><div className="success-check">✓</div><h2>{successMessage}</h2><p>Your patient list is up to date.</p></div></div>}
+      {selectedPatient && <div className="profile-overlay" onClick={() => setSelectedPatient(null)}><section className="doctor-card patient-record-modal" onClick={(event) => event.stopPropagation()}><div className="doctor-card-header"><div><h2>{selectedPatient.name}'s history</h2><p>{selectedPatient.email}</p></div><button className="profile-close-button" type="button" onClick={() => setSelectedPatient(null)}><X size={19} /></button></div>{isRecordLoading && <p className="add-patient-empty">Loading patient history…</p>}{!isRecordLoading && patientRecord && <div className="patient-record-content"><div className="record-summary"><strong>{patientRecord.history?.length || 0}</strong><span>monitoring entries</span></div>{patientRecord.latest ? <><div className="record-latest"><h3>Latest reading</h3><p>{new Date(patientRecord.latest.createdAt).toLocaleString()}</p></div><div className="vital-card-grid">{[['Heart rate', patientRecord.latest.heartRate, 'BPM', '#2563eb'], ['SpO₂', patientRecord.latest.spo2, '%', '#16a34a'], ['Temperature', patientRecord.latest.bodyTemp, '°C', '#ea580c'], ['Steps', patientRecord.latest.steps, '', '#7c3aed']].map(([label, value, unit, color]) => <div className="vital-card" key={label}><span>{label}</span><strong style={{ color }}>{value ?? '—'} <small>{unit}</small></strong></div>)}</div><div className="history-chart-grid">{[['Heart rate', 'heartRate', '#2563eb'], ['SpO₂', 'spo2', '#16a34a'], ['Temperature', 'bodyTemp', '#ea580c']].map(([title, key, color]) => <div className="history-chart-card" key={key}><h3>{title} trend</h3><ResponsiveContainer width="100%" height={190}><LineChart data={patientRecord.history || []}><CartesianGrid strokeDasharray="3 3" stroke="#e8eef5" /><XAxis dataKey="createdAt" tickFormatter={(value) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip labelFormatter={(value) => new Date(value).toLocaleString()} /><Line type="monotone" dataKey={key} stroke={color} strokeWidth={3} dot={false} connectNulls /></LineChart></ResponsiveContainer></div>)}</div></> : <p className="add-patient-empty">No monitoring history is available for this patient.</p>}</div>}</section></div>}
     </div>
   );
 }

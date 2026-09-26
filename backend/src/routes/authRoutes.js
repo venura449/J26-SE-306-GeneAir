@@ -20,4 +20,10 @@ router.post('/forgot-password', controller.forgotPassword);
 router.post('/logout', authenticate, controller.logout);
 router.get('/profile', authenticate, controller.getProfile);
 router.patch('/profile', authenticate, upload.single('profileImage'), controller.updateProfile);
+
+router.get('/patients/search', authenticate, controller.searchPatients);
+router.post('/patients', authenticate, controller.addPatient);
+router.delete('/patients/:id', authenticate, controller.removePatient);
+router.get('/patients/:id', authenticate, controller.getPatientRecord);
+router.get('/patients', authenticate, controller.getPatients);
 module.exports = router;

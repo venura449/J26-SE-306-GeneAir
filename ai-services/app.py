@@ -1,23 +1,32 @@
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
-from typing import Any, Dict, Optional
-from src.geneair.predictor import predict_from_features, BUNDLE
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Any, Dict, List
+from src.feature_engineering import build_stream_features
+from src.geneair.predictor import predict_from_features
 
-app=FastAPI(title='GeneAir Component 01 — Raw-Only Risk API',version=BUNDLE['model_version'])
+app=FastAPI(title='GeneAir Engine',version='2.0')
 
-class PredictRequest(BaseModel):
-    stream_features: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
-    tvl_sources: Optional[Dict[str, Dict[str, Any]]] = None
-
+class PredictionRequest(BaseModel):
+    iot_history: List[Dict[str,Any]]=[]
+    iot_current: Dict[str,Any]={}
+    clinical_history: List[Dict[str,Any]]=[]
+    medication_history: List[Dict[str,Any]]=[]
+    static: Dict[str,Any]={}
+    tvl_sources: Dict[str,Dict[str,Any]]={}
+    
+class FeatureRequest(BaseModel):
+    stream_features: Dict[str,Dict[str,Any]]
+    tvl_sources: Dict[str,Dict[str,Any]]={}
 
 @app.get('/health')
-def health():
-    return {'status':'ok','model_version':BUNDLE['model_version']}
-
-@app.get('/model-info')
-def model_info():
-    return {'model_version':BUNDLE['model_version'],'architecture':BUNDLE['architecture'],'stream_features':BUNDLE['stream_features'],'threshold_demo':BUNDLE['threshold']}
+def health(): return {'status':'ok','component':'GeneAir C01','architecture':'Traditional late fusion + parallel TVL'}
 
 @app.post('/predict')
-def predict(req: PredictRequest):
-    return predict_from_features(req.stream_features,req.tvl_sources)
+def predict(req:PredictionRequest):
+    try:return predict_from_features(build_stream_features(req.model_dump()),req.tvl_sources)
+    except Exception as e: raise HTTPException(status_code=400,detail=str(e))
+
+@app.post('/predict-features')
+def predict_features(req:FeatureRequest):
+    try:return predict_from_features(req.stream_features,req.tvl_sources)
+    except Exception as e: raise HTTPException(status_code=400,detail=str(e))

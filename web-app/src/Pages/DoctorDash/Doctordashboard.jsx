@@ -33,6 +33,8 @@ import { useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
 import logo from "../../assets/logo.png";
 import API_URL from "../../config/api";
+import PatientHistoryView from "./PatientHistoryView";
+import PatientDetailsEditor from "./PatientDetailsEditor";
 
 import {
   AreaChart,
@@ -245,8 +247,6 @@ function DoctorDashboard() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientRecord, setPatientRecord] = useState(null);
   const [isRecordLoading, setIsRecordLoading] = useState(false);
-  const [historySearch, setHistorySearch] = useState("");
-  const [comparisonMetric, setComparisonMetric] = useState("spo2");
 
 
   
@@ -304,10 +304,9 @@ function DoctorDashboard() {
     setSelectedPatient(patient);
     setPatientRecord(null);
     setIsRecordLoading(true);
-    setHistorySearch("");
     try {
       const token = localStorage.getItem("geneair_token");
-      const res = await fetch(`${API_URL}/auth/patients/${patient._id}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/auth/patients/${patient._id}`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) setPatientRecord(await res.json());
     } finally { setIsRecordLoading(false); }
   };
@@ -318,6 +317,7 @@ function DoctorDashboard() {
       try {
         const token = localStorage.getItem("geneair_token");
         const res = await fetch(`${API_URL}/auth/patients/${selectedPatient._id}`, {
+          cache: "no-store",
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) setPatientRecord(await res.json());
@@ -1045,7 +1045,6 @@ function DoctorDashboard() {
               </div>
             </div>
           </section>
-        {selectedPatient && <div className="history-search-bar"><Search size={17} /><input value={historySearch} onChange={(event) => setHistorySearch(event.target.value)} placeholder="Search readings by time or value..." /><select value={comparisonMetric} onChange={(event) => setComparisonMetric(event.target.value)} aria-label="Compare metric"><option value="spo2">Compare SpO₂</option><option value="bodyTemp">Compare temperature</option><option value="steps">Compare steps</option><option value="lightLux">Compare light</option></select></div>}
         </main>
       </div>
 
@@ -1134,7 +1133,7 @@ function DoctorDashboard() {
         </div>
       )}
       {successMessage && <div className="success-overlay" role="status"><div className="success-message"><div className="success-check">✓</div><h2>{successMessage}</h2><p>Your patient list is up to date.</p></div></div>}
-      {selectedPatient && <div className="profile-overlay" onClick={() => setSelectedPatient(null)}><section className="doctor-card patient-record-modal" onClick={(event) => event.stopPropagation()}><div className="doctor-card-header"><div><h2>{selectedPatient.name}'s history</h2><p>{selectedPatient.email}</p></div><button className="profile-close-button" type="button" onClick={() => setSelectedPatient(null)}><X size={19} /></button></div>{isRecordLoading && <p className="add-patient-empty">Loading patient history…</p>}{!isRecordLoading && patientRecord && <div className="patient-record-content"><div className="record-summary"><strong>{patientRecord.history?.length || 0}</strong><span>monitoring entries</span></div>{patientRecord.latest ? <><div className="record-latest"><h3>Latest reading</h3><p>{new Date(patientRecord.latest.createdAt).toLocaleString()}</p></div><div className="vital-card-grid">{[['Heart rate', patientRecord.latest.heartRate, 'BPM', '#2563eb'], ['SpO₂', patientRecord.latest.spo2, '%', '#16a34a'], ['Temperature', patientRecord.latest.bodyTemp, '°C', '#ea580c'], ['Steps', patientRecord.latest.steps, '', '#7c3aed']].map(([label, value, unit, color]) => <div className="vital-card" key={label}><span>{label}</span><strong style={{ color }}>{value ?? '—'} <small>{unit}</small></strong></div>)}</div><div className="history-chart-grid">{[['Heart rate', 'heartRate', '#2563eb'], ['SpO₂', 'spo2', '#16a34a'], ['Temperature', 'bodyTemp', '#ea580c']].map(([title, key, color]) => <div className="history-chart-card" key={key}><h3>{title} trend</h3><ResponsiveContainer width="100%" height={190}><LineChart data={patientRecord.history || []}><CartesianGrid strokeDasharray="3 3" stroke="#e8eef5" /><XAxis dataKey="createdAt" tickFormatter={(value) => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip labelFormatter={(value) => new Date(value).toLocaleString()} /><Line type="monotone" dataKey={key} stroke={color} strokeWidth={3} dot={false} connectNulls /></LineChart></ResponsiveContainer></div>)}</div></> : <p className="add-patient-empty">No monitoring history is available for this patient.</p>}</div>}</section></div>}
+      {selectedPatient && <div className="profile-overlay" onClick={() => setSelectedPatient(null)}><section className="doctor-card patient-record-modal" onClick={(event) => event.stopPropagation()}><div className="doctor-card-header"><div><h2>{selectedPatient.name}'s history</h2><p>{selectedPatient.email}</p></div><button className="profile-close-button" type="button" onClick={() => setSelectedPatient(null)}><X size={19} /></button></div>{isRecordLoading && <p className="add-patient-empty">Loading patient history…</p>}{!isRecordLoading && patientRecord && <div className="patient-record-content">{patientRecord.latest ? <><div className="record-latest"><h3>Latest reading</h3><p>{new Date(patientRecord.latest.createdAt).toLocaleString()}</p></div><div className="vital-card-grid">{[['Heart rate', patientRecord.latest.heartRate, 'BPM', '#2563eb'], ['SpO₂', patientRecord.latest.spo2, '%', '#16a34a'], ['Temperature', patientRecord.latest.bodyTemp, '°C', '#ea580c'], ['Steps', patientRecord.latest.steps, '', '#7c3aed']].map(([label, value, unit, color]) => <div className="vital-card" key={label}><span>{label}</span><strong style={{ color }}>{value ?? '—'} <small>{unit}</small></strong></div>)}</div><PatientHistoryView history={patientRecord.history} /><PatientDetailsEditor patient={patientRecord.patient} onSaved={(details) => setPatientRecord((current) => ({ ...current, patient: { ...current.patient, ...details } }))} /></> : <p className="add-patient-empty">No monitoring history is available for this patient.</p>}</div>}</section></div>}
     </div>
   );
 }

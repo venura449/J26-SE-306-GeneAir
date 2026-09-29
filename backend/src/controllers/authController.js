@@ -104,7 +104,9 @@ async function getPatientRecord(req, res) {
     const patient = await User.findById(patientId).select('-passwordHash -patients');
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
 
-    const history = await WatchData.find({ userId: patientId }).sort({ createdAt: 1 }).limit(400).lean();
+    // Fetch the newest readings first so the limit never hides current data.
+    // Reverse the limited set for chronological chart rendering.
+    const history = (await WatchData.find({ userId: patientId }).sort({ createdAt: -1 }).limit(400).lean()).reverse();
     const latest = history.length ? history[history.length - 1] : null;
     const locations = history.filter(
       (row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude),
@@ -117,10 +119,19 @@ async function getPatientRecord(req, res) {
   }
 }
 
+async function updatePatientDetails(req, res) {
+  try {
+    const doctor = await User.findById(req.user.sub).select('patients');
+    if (!doctor || !doctor.patients.some((id) => String(id) === String(req.params.id))) return res.status(403).json({ message: 'This patient is not on your list.' });
+    const patient = await User.findByIdAndUpdate(req.params.id, { clinical: req.body.clinical || {}, medication: req.body.medication || {} }, { new: true }).select('clinical medication');
+    return patient ? res.json(patient) : res.status(404).json({ message: 'Patient not found' });
+  } catch (error) { return res.status(500).json({ message: 'Unable to save patient details' }); }
+}
+
 module.exports = {
   searchPatients,
   addPatient,
   removePatient,
   getPatients,
   getPatientRecord,
-  register, login, logout, forgotPassword, getProfile, updateProfile };
+  register, login, logout, forgotPassword, getProfile, updateProfile, updatePatientDetails };

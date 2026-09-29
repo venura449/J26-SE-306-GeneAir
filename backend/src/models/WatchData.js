@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const schema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   heartRate: Number,
   steps: Number,
   lightLux: Number,
@@ -9,5 +9,9 @@ const schema = new mongoose.Schema({
   gyroZ: Number,
   spo2: Number,
   bodyTemp: Number,
+  latitude: Number,
+  longitude: Number,
+  locationName: { type: String, default: '' },
 }, { timestamps: true });
+schema.index({ userId: 1, createdAt: 1 });
 module.exports = mongoose.model('WatchData', schema);

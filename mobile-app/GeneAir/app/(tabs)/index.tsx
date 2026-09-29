@@ -397,6 +397,12 @@ export default function HomeScreen() {
             const data = parseWatchPacket(char.value);
             if (data) {
               setWatchData(data);
+              // Keep the doctor's patient history in sync with the live BLE feed.
+              // The dashboard can only display records that have been persisted
+              // through the authenticated mobile API.
+              syncWatchData({ ...data, locationName }).catch((syncError) => {
+                console.log("Watch history sync error:", syncError);
+              });
               setHrHistory((prev) => {
                 const newHistory = [...prev, data.heartRate];
                 if (newHistory.length > 15) newHistory.shift(); // Keep last 15 points

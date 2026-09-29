@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema({
   specialty: { type: String, trim: true, default: '' },
   organization: { type: String, trim: true, default: '' },
   bio: { type: String, trim: true, default: '' },
+  clinical: { type: mongoose.Schema.Types.Mixed, default: {} },
+  medication: { type: mongoose.Schema.Types.Mixed, default: {} },
   profileImage: { type: String, default: '' },
   dateOfBirth: { type: String, default: '' },
   bmi: { type: Number, default: 0 },
@@ -18,6 +20,8 @@ const userSchema = new mongoose.Schema({
   static_pack_years: { type: Number, default: 0 },
   static_severity: { type: String, default: 'Moderate' },
   static_pef_best: { type: Number, default: 450 },
+  patients: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  doctor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

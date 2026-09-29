@@ -6,10 +6,13 @@ import pandas as pd
 import joblib
 
 ROOT=Path(__file__).resolve().parents[2]
-BUNDLE=joblib.load(ROOT/'model'/'GeneAir_Component01_RawOnly_Bundle.joblib')
+BUNDLE=joblib.load(ROOT/'model'/'GeneAir_Component01_Render_Bundle.joblib')
 
-if not hasattr(BUNDLE['calibrator'], 'multi_class'):
-    BUNDLE['calibrator'].multi_class='auto'
+def _calibrate(raw_probability):
+    calibrator = BUNDLE['calibrator']
+    x = float(_logit([raw_probability])[0])
+    score = float(calibrator.intercept_[0]) + float(calibrator.coef_[0][0]) * x
+    return float(1.0 / (1.0 + math.exp(-score)))
 
 def _logit(p):
     p=np.clip(np.asarray(p,dtype=float),1e-6,1-1e-6)
@@ -50,7 +53,7 @@ def predict_from_features(stream_features: dict, tvl_sources: dict|None=None):
         X=pd.DataFrame([row],columns=features)
         risks[stream]=float(BUNDLE['stream_models'][stream].predict_proba(X)[:,1][0])
     raw=float(np.mean([risks[s] for s in BUNDLE['streams']]))
-    final=float(BUNDLE['calibrator'].predict_proba(_logit([raw]).reshape(-1,1))[:,1][0])
+    final=_calibrate(raw)
     tvl=compute_tvl(tvl_sources or {})
     warnings=[]
     for s,miss in missing.items():

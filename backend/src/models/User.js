@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema({
   specialty: { type: String, trim: true, default: '' },
   organization: { type: String, trim: true, default: '' },
   bio: { type: String, trim: true, default: '' },
+  clinical: { type: mongoose.Schema.Types.Mixed, default: {} },
+  medication: { type: mongoose.Schema.Types.Mixed, default: {} },
   profileImage: { type: String, default: '' },
   dateOfBirth: { type: String, default: '' },
   bmi: { type: Number, default: 0 },

@@ -25,5 +25,6 @@ router.get('/patients/search', authenticate, controller.searchPatients);
 router.post('/patients', authenticate, controller.addPatient);
 router.delete('/patients/:id', authenticate, controller.removePatient);
 router.get('/patients/:id', authenticate, controller.getPatientRecord);
+router.patch('/patients/:id/details', authenticate, controller.updatePatientDetails);
 router.get('/patients', authenticate, controller.getPatients);
 module.exports = router;

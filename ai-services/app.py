@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Any, Dict, List
 from src.feature_engineering import build_stream_features
 from src.geneair.predictor import predict_from_features
+from src.rag import ask as ask_rag
 
 app=FastAPI(title='GeneAir Engine',version='2.0')
 
@@ -18,6 +19,10 @@ class FeatureRequest(BaseModel):
     stream_features: Dict[str,Dict[str,Any]]
     tvl_sources: Dict[str,Dict[str,Any]]={}
 
+class RagRequest(BaseModel):
+    question: str
+    top_k: int = 4
+
 @app.get('/health')
 def health(): return {'status':'ok','component':'GeneAir C01','architecture':'Traditional late fusion + parallel TVL'}
 
@@ -30,3 +35,12 @@ def predict(req:PredictionRequest):
 def predict_features(req:FeatureRequest):
     try:return predict_from_features(req.stream_features,req.tvl_sources)
     except Exception as e: raise HTTPException(status_code=400,detail=str(e))
+
+@app.post('/rag/ask')
+def rag_ask(req: RagRequest):
+    if not req.question.strip():
+        raise HTTPException(status_code=422, detail='question must not be empty')
+    try:
+        return ask_rag(req.question.strip(), max(1, min(req.top_k, 8)))
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e))

@@ -43,6 +43,7 @@ jspm_packages/
 
 # Generated model artifacts
 /ai-services/model/
+/ai-services/knowledge/*
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/

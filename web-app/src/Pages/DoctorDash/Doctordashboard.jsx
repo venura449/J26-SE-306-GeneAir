@@ -35,7 +35,7 @@ import logo from "../../assets/logo.png";
 import API_URL from "../../config/api";
 import PatientHistoryView from "./PatientHistoryView";
 import PatientDetailsEditor from "./PatientDetailsEditor";
-import RiskMonitoringView, { HighRiskCountCard } from "./RiskMonitoringView";
+import RiskMonitoringView, { HighRiskAlertsChart, HighRiskCausesCard } from "./RiskMonitoringView";
 
 import {
   AreaChart,
@@ -943,7 +943,7 @@ function DoctorDashboard() {
 
           <section className="doctor-bottom-grid">
             {activeSection === "Risk Monitoring" ? (
-              <HighRiskCountCard patients={doctorPatients} />
+              <HighRiskAlertsChart patients={doctorPatients} />
             ) :(
               <div className="doctor-card consultations-card">
                 <div className="doctor-card-header">
@@ -1017,44 +1017,48 @@ function DoctorDashboard() {
               </div>
             )}
 
-            <div className="doctor-card activity-card">
-              <div className="doctor-card-header">
-                <div>
-                  <h2>Recent Activity</h2>
-                  <p>Latest patient updates</p>
+            {activeSection === "Risk Monitoring" ? (
+              <HighRiskCausesCard patients={doctorPatients} />
+            ) : (
+              <div className="doctor-card activity-card">
+                <div className="doctor-card-header">
+                  <div>
+                    <h2>Recent Activity</h2>
+                    <p>Latest patient updates</p>
+                  </div>
+
+                  <button className="icon-action-button">
+                    <MoreHorizontal size={19} />
+                  </button>
                 </div>
 
-                <button className="icon-action-button">
-                  <MoreHorizontal size={19} />
-                </button>
+                <div className="doctor-activity-list">
+                  {activities.map((activity, index) => {
+                    const Icon = activity.icon;
+
+                    return (
+                      <motion.div
+                        className="doctor-activity-item"
+                        key={activity.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.06 }}
+                      >
+                        <div className="activity-icon-box">
+                          <Icon size={17} />
+                        </div>
+
+                        <div>
+                          <strong>{activity.title}</strong>
+                          <span>{activity.description}</span>
+                          <small>{activity.time}</small>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               </div>
-
-              <div className="doctor-activity-list">
-                {activities.map((activity, index) => {
-                  const Icon = activity.icon;
-
-                  return (
-                    <motion.div
-                      className="doctor-activity-item"
-                      key={activity.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.06 }}
-                    >
-                      <div className="activity-icon-box">
-                        <Icon size={17} />
-                      </div>
-
-                      <div>
-                        <strong>{activity.title}</strong>
-                        <span>{activity.description}</span>
-                        <small>{activity.time}</small>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
+            )}
           </section>
         </main>
       </div>

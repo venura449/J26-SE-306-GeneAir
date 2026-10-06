@@ -1502,3 +1502,20 @@ body {
 }
 .high-risk-count-number { font-size: 64px; line-height: 1; font-weight: 800; color: #dc2626; }
 .high-risk-count-label { color: #64748b; font-size: 14px; }
+
+.high-risk-chart-total { text-align: right; display: flex; flex-direction: column; }
+.high-risk-chart-total strong { font-size: 1.8rem; line-height: 1; color: #dc2626; }
+.high-risk-chart-total span { font-size: 0.75rem; opacity: 0.7; }
+
+.high-risk-chart { display: flex; align-items: flex-end; gap: 4px; height: 140px; padding-top: 8px; }
+.high-risk-chart-col { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.high-risk-chart-bar { width: 100%; min-height: 3px; border-radius: 4px 4px 0 0; background: #dc2626; transition: height 0.3s ease; }
+.high-risk-chart-bar[data-empty="true"] { background: rgba(120, 120, 120, 0.25); }
+.high-risk-chart-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.7rem; opacity: 0.65; }
+
+.high-risk-causes-insight { margin: 0 0 12px; font-size: 0.9rem; }
+.high-risk-causes-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.high-risk-causes-list li { display: grid; grid-template-columns: 1fr 44px; gap: 4px 10px; align-items: center; }
+.high-risk-cause-head { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; }
+.high-risk-cause-head small { opacity: 0.65; }
+.high-risk-cause-share { font-weight: 600; text-align: right; }

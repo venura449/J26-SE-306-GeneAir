@@ -35,7 +35,8 @@ import logo from "../../assets/logo.png";
 import API_URL from "../../config/api";
 import PatientHistoryView from "./PatientHistoryView";
 import PatientDetailsEditor from "./PatientDetailsEditor";
-import RiskMonitoringView, { HighRiskCountCard } from "./RiskMonitoringView";
+import RiskMonitoringView, { HighRiskAlertsChart, HighRiskCausesCard } from "./RiskMonitoringView";
+import AlertsView from "./AlertsView";
 
 import {
   AreaChart,
@@ -490,7 +491,7 @@ function DoctorDashboard() {
                 className={`sidebar-nav-item ${(item.label === activeSection || (item.label === "Dashboard" && activeSection === "Dashboard")) ? "active" : ""}`}
                 onClick={() => {
                   if (item.label === "Profile") openProfile();
-                  else if (["Dashboard", "Patients", "Risk Monitoring"].includes(item.label)) setActiveSection(item.label);
+                  else if (["Dashboard", "Patients", "Risk Monitoring", "Alerts"].includes(item.label)) setActiveSection(item.label);
                 }}
               >
                 <Icon size={18} />
@@ -554,10 +555,11 @@ function DoctorDashboard() {
           >
             <div>
               <p className="dashboard-label">DOCTOR WORKSPACE</p>
-              <h1>{activeSection === "Patients" ? "Patients" : activeSection === "Risk Monitoring" ? "Risk Monitoring" : `Good morning, ${profile.name}`}</h1>
+              <h1>{activeSection === "Patients" ? "Patients" : activeSection === "Risk Monitoring" ? "Risk Monitoring" : activeSection === "Alerts" ? "Alerts" : `Good morning, ${profile.name}`}</h1>
               <p className="dashboard-description">
                 {activeSection === "Patients" ? "Manage your patients and review their monitoring history." 
                   : activeSection === "Risk Monitoring" ? "Review patients ranked by current asthma risk."
+                  : activeSection === "Alerts" ? "Review and act on alerts."
                   : "Review asthma status, risk levels, and recent patient updates."
                 }
               </p>
@@ -841,7 +843,7 @@ function DoctorDashboard() {
             />
           </section>}
 
-          <section className={`doctor-main-grid ${activeSection === "Patients" ? "patients-tab-layout" : "dashboard-overview-grid"}`}>
+          <section className={`doctor-main-grid ${activeSection === "Patients" || activeSection === "Alerts" ? "patients-tab-layout" : "dashboard-overview-grid"}`}>
             {activeSection === "Patients" && <div className="doctor-card appointments-card patient-list-card">
               <div className="doctor-card-header">
                 <div>
@@ -889,6 +891,8 @@ function DoctorDashboard() {
                 ))}
               </div>
             </div>}
+
+            {activeSection === "Alerts" && <AlertsView patients={doctorPatients} />}
 
             {activeSection === "Dashboard" && <motion.div
               className="doctor-card ai-assistant-card"
@@ -943,7 +947,7 @@ function DoctorDashboard() {
 
           <section className="doctor-bottom-grid">
             {activeSection === "Risk Monitoring" ? (
-              <HighRiskCountCard patients={doctorPatients} />
+              <HighRiskAlertsChart patients={doctorPatients} />
             ) :(
               <div className="doctor-card consultations-card">
                 <div className="doctor-card-header">
@@ -1017,45 +1021,55 @@ function DoctorDashboard() {
               </div>
             )}
 
-            <div className="doctor-card activity-card">
-              <div className="doctor-card-header">
-                <div>
-                  <h2>Recent Activity</h2>
-                  <p>Latest patient updates</p>
+            {activeSection === "Risk Monitoring" ? (
+              <HighRiskCausesCard patients={doctorPatients} />
+            ) : (
+              <div className="doctor-card activity-card">
+                <div className="doctor-card-header">
+                  <div>
+                    <h2>Recent Activity</h2>
+                    <p>Latest patient updates</p>
+                  </div>
+
+                  <button className="icon-action-button">
+                    <MoreHorizontal size={19} />
+                  </button>
                 </div>
 
-                <button className="icon-action-button">
-                  <MoreHorizontal size={19} />
-                </button>
+                <div className="doctor-activity-list">
+                  {activities.map((activity, index) => {
+                    const Icon = activity.icon;
+
+                    return (
+                      <motion.div
+                        className="doctor-activity-item"
+                        key={activity.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.06 }}
+                      >
+                        <div className="activity-icon-box">
+                          <Icon size={17} />
+                        </div>
+
+                        <div>
+                          <strong>{activity.title}</strong>
+                          <span>{activity.description}</span>
+                          <small>{activity.time}</small>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               </div>
-
-              <div className="doctor-activity-list">
-                {activities.map((activity, index) => {
-                  const Icon = activity.icon;
-
-                  return (
-                    <motion.div
-                      className="doctor-activity-item"
-                      key={activity.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.06 }}
-                    >
-                      <div className="activity-icon-box">
-                        <Icon size={17} />
-                      </div>
-
-                      <div>
-                        <strong>{activity.title}</strong>
-                        <span>{activity.description}</span>
-                        <small>{activity.time}</small>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
+            )}
           </section>
+
+          {activeSection !== "Alerts" && (
+            <section className="doctor-bottom-grid">
+              {/* Additional content or components can be added here if needed */}
+            </section>
+          )}
         </main>
       </div>
 

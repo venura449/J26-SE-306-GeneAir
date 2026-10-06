@@ -13,7 +13,10 @@ export function getRiskLevel(score) {
 
 const LEVEL_LABEL = { high: "High risk", moderate: "Moderate risk", low: "Low risk" };
 
-function seededRandom(seedStr) {
+const ALERT_WINDOW_HOURS = 24;
+const HOUR_MS = 3600 * 1000;
+
+export function seededRandom(seedStr) {
   let h = 2166136261;
   for (let i = 0; i < seedStr.length; i++) {
     h ^= seedStr.charCodeAt(i);
@@ -38,7 +41,7 @@ const DRIVER_POOL = [
   { label: "Asthma severity class", stream: "Static" },
 ];
 
-function getRiskForPatient(patient) {
+export function getRiskForPatient(patient) {
   const rand = seededRandom(String(patient._id || patient.email || patient.name));
   const score = Math.round(rand() * 100);
   const streams = ["IoT", "Clinical", "Medication", "Static"].map((name) => ({
@@ -226,29 +229,125 @@ function RiskMonitoringView({ patients = [], riskData = {} }) {
   );
 }
 
-export function HighRiskCountCard({ patients = [], riskData = {} }) {
-  const highCount = patients.filter((patient) => {
+function getAlertsLast24h(patients, riskData, now) {
+  const cutoff = now - ALERT_WINDOW_HOURS * HOUR_MS;
+  return patients.flatMap((patient) => {
     const risk = riskData[patient._id] || getRiskForPatient(patient);
-    return getRiskLevel(risk.score) === "high";
-  }).length;
+    if (getRiskLevel(risk.score) !== "high") return [];
+
+    // Real alert time if the backend provides it, otherwise a simulated one.
+    const seed = String(patient._id || patient.email || patient.name) + ":alert";
+    const at = patient.lastHighRiskAlertAt
+      ? new Date(patient.lastHighRiskAlertAt).getTime()
+      : now - seededRandom(seed)() * ALERT_WINDOW_HOURS * HOUR_MS;
+
+    if (Number.isNaN(at) || at < cutoff || at > now) return [];
+    return [{ patient, at, score: risk.score, drivers: risk.drivers }];
+  });
+}
+
+export function HighRiskAlertsChart({ patients = [], riskData = {} }) {
+  const { buckets, total } = useMemo(() => {
+    const now = Date.now();
+    const alerts = getAlertsLast24h(patients, riskData, now);
+    const counts = Array(ALERT_WINDOW_HOURS).fill(0);
+    alerts.forEach((a) => {
+      const hoursAgo = Math.floor((now - a.at) / HOUR_MS);
+      counts[ALERT_WINDOW_HOURS - 1 - Math.min(hoursAgo, ALERT_WINDOW_HOURS - 1)] += 1;
+    });
+    return { buckets: counts, total: alerts.length };
+  }, [patients, riskData]);
+
+  const max = Math.max(1, ...buckets);
 
   return (
-    <div className="doctor-card consultations-card high-risk-count-card">
+    <div className="doctor-card consultations-card high-risk-chart-card">
       <div className="doctor-card-header">
         <div>
-          <h2>High-Risk Patients</h2>
-          <p>Patients at or above {RISK_BANDS.high}% risk</p>
+          <h2>High-Risk Alerts</h2>
+          <p>Patients who received a high-risk alert in the past 24 hours</p>
+        </div>
+        <div className="high-risk-chart-total">
+          <strong>{total}</strong>
+          <span>of {patients.length} {patients.length === 1 ? "patient" : "patients"}</span>
         </div>
       </div>
-      <div className="high-risk-count-body">
-        <div className="high-risk-count-icon">
-          <TriangleAlert size={28} />
-        </div>
-        <strong className="high-risk-count-number">{highCount}</strong>
-        <span className="high-risk-count-label">
-          of {patients.length} {patients.length === 1 ? "patient" : "patients"} need close monitoring
-        </span>
+
+      <div className="high-risk-chart" role="img" aria-label={`${total} patients received high-risk alerts in the past 24 hours`}>
+        {buckets.map((count, i) => {
+          const hoursAgo = ALERT_WINDOW_HOURS - 1 - i;
+          return (
+            <div className="high-risk-chart-col" key={i} title={`${count} ${count === 1 ? "patient" : "patients"}, ${hoursAgo === 0 ? "this hour" : `${hoursAgo}h ago`}`}>
+              <div className="high-risk-chart-bar" style={{ height: `${(count / max) * 100}%` }} data-empty={count === 0} />
+            </div>
+          );
+        })}
       </div>
+      <div className="high-risk-chart-axis">
+        <span>24h ago</span>
+        <span>18h</span>
+        <span>12h</span>
+        <span>6h</span>
+        <span>Now</span>
+      </div>
+    </div>
+  );
+}
+
+export function HighRiskCausesCard({ patients = [], riskData = {} }) {
+  const { causes, alertCount } = useMemo(() => {
+    const alerts = getAlertsLast24h(patients, riskData, Date.now());
+    const tally = new Map();
+    alerts.forEach(({ drivers }) => {
+      drivers
+        .filter((d) => d.direction === "up")
+        .forEach((d) => {
+          const entry = tally.get(d.label) || { label: d.label, stream: d.stream, patients: 0, impact: 0 };
+          entry.patients += 1;
+          entry.impact += d.impact;
+          tally.set(d.label, entry);
+        });
+    });
+    const list = [...tally.values()]
+      .map((c) => ({ ...c, share: alerts.length ? Math.round((c.patients / alerts.length) * 100) : 0, avgImpact: Math.round(c.impact / c.patients) }))
+      .sort((a, b) => b.patients - a.patients || b.avgImpact - a.avgImpact);
+    return { causes: list, alertCount: alerts.length };
+  }, [patients, riskData]);
+
+  const top = causes[0];
+
+  return (
+    <div className="doctor-card recent-activity-card high-risk-causes-card">
+      <div className="doctor-card-header">
+        <div>
+          <h2>Causes of High-Risk Alerts</h2>
+          <p>What drove alerts in the past 24 hours</p>
+        </div>
+      </div>
+
+      {alertCount === 0 ? (
+        <p className="add-patient-empty">No high-risk alerts in the past 24 hours.</p>
+      ) : (
+        <>
+          <p className="high-risk-causes-insight">
+            {top.label} contributed to {top.patients} of {alertCount} {alertCount === 1 ? "alert" : "alerts"} ({top.share}%).
+          </p>
+          <ul className="high-risk-causes-list">
+            {causes.slice(0, 5).map((c) => (
+              <li key={c.label}>
+                <div className="high-risk-cause-head">
+                  <strong>{c.label}</strong>
+                  <small>{c.stream} data · avg +{c.avgImpact}%</small>
+                </div>
+                <div className="risk-stream-track">
+                  <div className="risk-stream-fill risk-fill-high" style={{ width: `${c.share}%` }} />
+                </div>
+                <span className="high-risk-cause-share">{c.share}%</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

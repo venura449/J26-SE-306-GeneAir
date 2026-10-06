@@ -140,7 +140,7 @@ function AlertsView({ patients = [] }) {
 
       <div className="alerts-filters">
         <div className="alerts-filter-group" role="group" aria-label="Filter by severity">
-          {["all", "high", "moderate", "low"].map((s) => (
+          {["all", "high", "moderate" ].map((s) => (
             <button key={s} type="button" className={`alerts-filter ${severityFilter === s ? "active" : ""}`} onClick={() => setSeverityFilter(s)}>
               {s === "all" ? "All severities" : SEVERITY_LABEL[s]}
             </button>

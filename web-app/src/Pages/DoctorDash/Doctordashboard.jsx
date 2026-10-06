@@ -35,6 +35,7 @@ import logo from "../../assets/logo.png";
 import API_URL from "../../config/api";
 import PatientHistoryView from "./PatientHistoryView";
 import PatientDetailsEditor from "./PatientDetailsEditor";
+import RiskMonitoringView, { HighRiskCountCard } from "./RiskMonitoringView";
 
 import {
   AreaChart,
@@ -489,7 +490,7 @@ function DoctorDashboard() {
                 className={`sidebar-nav-item ${(item.label === activeSection || (item.label === "Dashboard" && activeSection === "Dashboard")) ? "active" : ""}`}
                 onClick={() => {
                   if (item.label === "Profile") openProfile();
-                  else if (["Dashboard", "Patients"].includes(item.label)) setActiveSection(item.label);
+                  else if (["Dashboard", "Patients", "Risk Monitoring"].includes(item.label)) setActiveSection(item.label);
                 }}
               >
                 <Icon size={18} />
@@ -553,9 +554,12 @@ function DoctorDashboard() {
           >
             <div>
               <p className="dashboard-label">DOCTOR WORKSPACE</p>
-              <h1>{activeSection === "Patients" ? "Patients" : `Good morning, ${profile.name}`}</h1>
+              <h1>{activeSection === "Patients" ? "Patients" : activeSection === "Risk Monitoring" ? "Risk Monitoring" : `Good morning, ${profile.name}`}</h1>
               <p className="dashboard-description">
-                {activeSection === "Patients" ? "Manage your patients and review their monitoring history." : "Review asthma status, risk levels, and recent patient updates."}
+                {activeSection === "Patients" ? "Manage your patients and review their monitoring history." 
+                  : activeSection === "Risk Monitoring" ? "Review patients ranked by current asthma risk."
+                  : "Review asthma status, risk levels, and recent patient updates."
+                }
               </p>
             </div>
 
@@ -932,79 +936,86 @@ function DoctorDashboard() {
                 <ArrowUpRight size={16} />
               </button>
             </motion.div>}
+            {activeSection === "Risk Monitoring" && (
+              <RiskMonitoringView patients={doctorPatients} />
+            )}
           </section>
 
           <section className="doctor-bottom-grid">
-            <div className="doctor-card consultations-card">
-              <div className="doctor-card-header">
-                <div>
-                  <h2>Patient Monitoring Activity</h2>
-                  <p>Records updated in the last 7 days</p>
+            {activeSection === "Risk Monitoring" ? (
+              <HighRiskCountCard patients={doctorPatients} />
+            ) :(
+              <div className="doctor-card consultations-card">
+                <div className="doctor-card-header">
+                  <div>
+                    <h2>Patient Monitoring Activity</h2>
+                    <p>Records updated in the last 7 days</p>
+                  </div>
+
+                  <select>
+                    <option>7 Days</option>
+                    <option>30 Days</option>
+                    <option>3 Months</option>
+                  </select>
                 </div>
 
-                <select>
-                  <option>7 Days</option>
-                  <option>30 Days</option>
-                  <option>3 Months</option>
-                </select>
+                <div className="doctor-chart">
+                  <ResponsiveContainer width="100%" height={255}>
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient
+                          id="doctorAreaGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#2563eb"
+                            stopOpacity={0.25}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#2563eb"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+
+                      <CartesianGrid
+                        strokeDasharray="4 4"
+                        vertical={false}
+                        stroke="#eef2f7"
+                      />
+
+                      <XAxis
+                        dataKey="day"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#64748b", fontSize: 12 }}
+                      />
+
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#64748b", fontSize: 12 }}
+                      />
+
+                      <Tooltip />
+
+                      <Area
+                        type="monotone"
+                        dataKey="patients"
+                        stroke="#2563eb"
+                        strokeWidth={3}
+                        fill="url(#doctorAreaGradient)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-
-              <div className="doctor-chart">
-                <ResponsiveContainer width="100%" height={255}>
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient
-                        id="doctorAreaGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="#2563eb"
-                          stopOpacity={0.25}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="#2563eb"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-
-                    <CartesianGrid
-                      strokeDasharray="4 4"
-                      vertical={false}
-                      stroke="#eef2f7"
-                    />
-
-                    <XAxis
-                      dataKey="day"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#64748b", fontSize: 12 }}
-                    />
-
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: "#64748b", fontSize: 12 }}
-                    />
-
-                    <Tooltip />
-
-                    <Area
-                      type="monotone"
-                      dataKey="patients"
-                      stroke="#2563eb"
-                      strokeWidth={3}
-                      fill="url(#doctorAreaGradient)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            )}
 
             <div className="doctor-card activity-card">
               <div className="doctor-card-header">

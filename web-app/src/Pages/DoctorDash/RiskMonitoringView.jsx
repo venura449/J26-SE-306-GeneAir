@@ -16,7 +16,7 @@ const LEVEL_LABEL = { high: "High risk", moderate: "Moderate risk", low: "Low ri
 const ALERT_WINDOW_HOURS = 24;
 const HOUR_MS = 3600 * 1000;
 
-function seededRandom(seedStr) {
+export function seededRandom(seedStr) {
   let h = 2166136261;
   for (let i = 0; i < seedStr.length; i++) {
     h ^= seedStr.charCodeAt(i);
@@ -41,7 +41,7 @@ const DRIVER_POOL = [
   { label: "Asthma severity class", stream: "Static" },
 ];
 
-function getRiskForPatient(patient) {
+export function getRiskForPatient(patient) {
   const rand = seededRandom(String(patient._id || patient.email || patient.name));
   const score = Math.round(rand() * 100);
   const streams = ["IoT", "Clinical", "Medication", "Static"].map((name) => ({

@@ -1,0 +1,22 @@
+{
+  "files": [
+    "actions.h",
+    "eez-flow.cpp",
+    "eez-flow.h",
+    "fonts.h",
+    "images.c",
+    "images.h",
+    "screens.c",
+    "screens.h",
+    "structs.h",
+    "styles.c",
+    "styles.h",
+    "ui.c",
+    "ui.h",
+    "ui_font_roboto_mono_16.c",
+    "ui_font_roboto_mono_32.c",
+    "ui_font_roboto_mono_64.c",
+    "ui_image_right_arrow.c",
+    "vars.h"
+  ]
+}

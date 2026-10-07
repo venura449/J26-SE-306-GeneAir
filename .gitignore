@@ -194,3 +194,9 @@ __pycache__/
 
 .venv/
 
+ai-services/knowledge/GINA-2026-Strategy-Report-WMS.pdf
+ai-services/chroma_db/chroma.sqlite3
+ai-services/chroma_db/8ee96427-b63e-4a48-8db8-10dab810ff99/data_level0.bin
+ai-services/chroma_db/8ee96427-b63e-4a48-8db8-10dab810ff99/header.bin
+ai-services/chroma_db/8ee96427-b63e-4a48-8db8-10dab810ff99/length.bin
+ai-services/chroma_db/8ee96427-b63e-4a48-8db8-10dab810ff99/link_lists.bin

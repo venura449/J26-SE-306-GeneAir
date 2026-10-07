@@ -5,8 +5,6 @@ import {
   Sparkles,
   Clock3,
   ChevronRight,
-  MoreHorizontal,
-  Activity,
   FileText,
   MessageSquareText,
   Plus,
@@ -33,25 +31,11 @@ import { useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
 import logo from "../../assets/logo.png";
 import API_URL from "../../config/api";
+import { toast } from "react-toastify";
 import PatientHistoryView from "./PatientHistoryView";
 import PatientDetailsEditor from "./PatientDetailsEditor";
 import RiskMonitoringView, { HighRiskAlertsChart, HighRiskCausesCard } from "./RiskMonitoringView";
 import AlertsView from "./AlertsView";
-
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  Legend,
-} from "recharts";
 
 import "./Dashboard.css";
 
@@ -112,47 +96,6 @@ const patients = [
     status: "Stable",
     risk: "Low risk",
   },
-];
-
-const activities = [
-  {
-    id: 1,
-    icon: FileText,
-    title: "Clinical note generated",
-    description: "AI summary created for Amelia Martin",
-    time: "4 min ago",
-  },
-  {
-    id: 2,
-    icon: Activity,
-    title: "Patient record updated",
-    description: "Vitals added for Daniel Smith",
-    time: "18 min ago",
-  },
-  {
-    id: 3,
-    icon: MessageSquareText,
-    title: "New patient message",
-    description: "Sophia Wilson sent a message",
-    time: "35 min ago",
-  },
-  {
-    id: 4,
-    icon: Sparkles,
-    title: "AI analysis completed",
-    description: "Patient history summarized",
-    time: "1 hour ago",
-  },
-];
-
-const chartData = [
-  { day: "Mon", patients: 12 },
-  { day: "Tue", patients: 17 },
-  { day: "Wed", patients: 14 },
-  { day: "Thu", patients: 21 },
-  { day: "Fri", patients: 18 },
-  { day: "Sat", patients: 10 },
-  { day: "Sun", patients: 8 },
 ];
 
 function createCroppedImage(imageSource, pixelCrop, fileType) {
@@ -283,10 +226,10 @@ function DoctorDashboard() {
       if (res.ok) {
         closeAddPatientModal();
         await fetchPatients();
-        setSuccessMessage("Patient added successfully");
-        setTimeout(() => setSuccessMessage(""), 3500);
+        toast.success("Patient added successfully");
       }
-    } catch (e) { console.error(e); }
+      else toast.error("Unable to add patient.");
+    } catch (e) { console.error(e); toast.error(e.message || "Unable to add patient."); }
   };
 
   const removePatient = async (patient) => {
@@ -297,8 +240,9 @@ function DoctorDashboard() {
     });
     if (res.ok) {
       setDoctorPatients((current) => current.filter((item) => item._id !== patient._id));
-      setSuccessMessage("Patient removed successfully");
-      setTimeout(() => setSuccessMessage(""), 3500);
+      toast.success("Patient removed successfully");
+    } else {
+      toast.error("Unable to remove patient.");
     }
   };
 
@@ -310,6 +254,8 @@ function DoctorDashboard() {
       const token = localStorage.getItem("geneair_token");
       const res = await fetch(`${API_URL}/auth/patients/${patient._id}`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) setPatientRecord(await res.json());
+    } catch (error) {
+      toast.error(error.message || "Unable to load patient history.");
     } finally { setIsRecordLoading(false); }
   };
 
@@ -353,7 +299,7 @@ function DoctorDashboard() {
       setSavedProfile(data);
       localStorage.setItem("geneair_user", JSON.stringify(data));
     } catch (error) {
-      setProfileMessage(error.message);
+      toast.error(error.message);
     }
   };
 
@@ -397,7 +343,7 @@ function DoctorDashboard() {
       setProfileImagePreview(URL.createObjectURL(croppedFile));
       cancelCrop();
     } catch (error) {
-      setProfileMessage(error.message);
+      toast.error(error.message);
     }
   };
   const saveProfile = async (event) => {
@@ -426,10 +372,10 @@ function DoctorDashboard() {
       if (profileImagePreview) URL.revokeObjectURL(profileImagePreview);
       setProfileImagePreview("");
       setProfileImageFile(null);
-      setProfileMessage("Profile saved successfully.");
+      toast.success("Profile saved successfully.");
       setIsProfileOpen(false);
     } catch (error) {
-      setProfileMessage(error.message);
+      toast.error(error.message);
     } finally {
       setProfileBusy(false);
     }
@@ -945,125 +891,12 @@ function DoctorDashboard() {
             )}
           </section>
 
-          <section className="doctor-bottom-grid">
-            {activeSection === "Risk Monitoring" ? (
+          {activeSection === "Risk Monitoring" && (
+            <section className="doctor-bottom-grid">
               <HighRiskAlertsChart patients={doctorPatients} />
-            ) :(
-              <div className="doctor-card consultations-card">
-                <div className="doctor-card-header">
-                  <div>
-                    <h2>Patient Monitoring Activity</h2>
-                    <p>Records updated in the last 7 days</p>
-                  </div>
-
-                  <select>
-                    <option>7 Days</option>
-                    <option>30 Days</option>
-                    <option>3 Months</option>
-                  </select>
-                </div>
-
-                <div className="doctor-chart">
-                  <ResponsiveContainer width="100%" height={255}>
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient
-                          id="doctorAreaGradient"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="#2563eb"
-                            stopOpacity={0.25}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="#2563eb"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-
-                      <CartesianGrid
-                        strokeDasharray="4 4"
-                        vertical={false}
-                        stroke="#eef2f7"
-                      />
-
-                      <XAxis
-                        dataKey="day"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: "#64748b", fontSize: 12 }}
-                      />
-
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: "#64748b", fontSize: 12 }}
-                      />
-
-                      <Tooltip />
-
-                      <Area
-                        type="monotone"
-                        dataKey="patients"
-                        stroke="#2563eb"
-                        strokeWidth={3}
-                        fill="url(#doctorAreaGradient)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-
-            {activeSection === "Risk Monitoring" ? (
               <HighRiskCausesCard patients={doctorPatients} />
-            ) : (
-              <div className="doctor-card activity-card">
-                <div className="doctor-card-header">
-                  <div>
-                    <h2>Recent Activity</h2>
-                    <p>Latest patient updates</p>
-                  </div>
-
-                  <button className="icon-action-button">
-                    <MoreHorizontal size={19} />
-                  </button>
-                </div>
-
-                <div className="doctor-activity-list">
-                  {activities.map((activity, index) => {
-                    const Icon = activity.icon;
-
-                    return (
-                      <motion.div
-                        className="doctor-activity-item"
-                        key={activity.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.06 }}
-                      >
-                        <div className="activity-icon-box">
-                          <Icon size={17} />
-                        </div>
-
-                        <div>
-                          <strong>{activity.title}</strong>
-                          <span>{activity.description}</span>
-                          <small>{activity.time}</small>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </section>
+            </section>
+          )}
 
           {activeSection !== "Alerts" && (
             <section className="doctor-bottom-grid">

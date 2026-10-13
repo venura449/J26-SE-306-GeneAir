@@ -1,6 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { ChevronRight, X, TriangleAlert, Wind, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
+import { ChevronRight, X, TriangleAlert, Wind, ShieldCheck, TrendingUp, TrendingDown, RefreshCw, ChartLine, Search } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { toast } from "react-toastify";
+import API_URL from "../../config/api";
 import "./Dashboard.css";
 
 export const RISK_BANDS = { high: 70, moderate: 40 };
@@ -84,15 +87,66 @@ function RiskBadge({ score }) {
   );
 }
 
-function RiskMonitoringView({ patients = [], riskData = {} }) {
+function RiskMonitoringView({ patients = [], riskData = {}, onRiskUpdate }) {
   const [selected, setSelected] = useState(null);
+  const [evaluation, setEvaluation] = useState(null);
+  const [evaluating, setEvaluating] = useState(null);
+  const [expandedTvl, setExpandedTvl] = useState(null);
+  const [history, setHistory] = useState(null);
+  const [historyPatient, setHistoryPatient] = useState(null);
+  const [loadingScores, setLoadingScores] = useState(true);
+  const [search, setSearch] = useState("");
+  const [riskFilter, setRiskFilter] = useState("all");
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadLatestScores() {
+      setLoadingScores(true);
+      const token = localStorage.getItem("geneair_token");
+      const results = await Promise.all(patients.map(async (patient) => {
+        try {
+          const response = await fetch(`${API_URL}/risk/patients/${patient._id}/history`, { headers: { Authorization: `Bearer ${token}` } });
+          if (!response.ok) return null;
+          const saved = await response.json();
+          const latest = saved[saved.length - 1];
+          if (!latest) return null;
+          return { id: patient._id, risk: { score: Math.round(latest.score * 100), streams: Object.entries(latest.streamRisks || {}).map(([name, value]) => ({ name, value: Math.round(value * 100) })), drivers: [], evaluation: latest } };
+        } catch { return null; }
+      }));
+      if (!cancelled) { results.filter(Boolean).forEach(({ id, risk }) => onRiskUpdate?.(id, risk)); setLoadingScores(false); }
+    }
+    if (patients.length) loadLatestScores(); else setLoadingScores(false);
+    return () => { cancelled = true; };
+  }, [patients, onRiskUpdate]);
+
+  const openRiskHistory = async (patient, event) => {
+    event.stopPropagation(); setHistoryPatient(patient); setHistory(null);
+    try { const response = await fetch(`${API_URL}/risk/patients/${patient._id}/history`, { headers: { Authorization: `Bearer ${localStorage.getItem("geneair_token")}` } }); const data = await response.json(); if (!response.ok) throw new Error(data.message || "Unable to load risk history."); setHistory(data.map((item) => ({ ...item, score: Math.round(item.score * 100), time: new Date(item.createdAt).toLocaleString() }))); }
+    catch (error) { setHistoryPatient(null); toast.error(error.message); }
+  };
+
+  const reevaluate = async (patient, event) => {
+    event.stopPropagation();
+    setEvaluating(patient._id);
+    setEvaluation({ patient, loading: true });
+    try {
+      const response = await fetch(`${API_URL}/risk/patients/${patient._id}/evaluate`, { method: "POST", headers: { Authorization: `Bearer ${localStorage.getItem("geneair_token")}` } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Risk evaluation failed.");
+      const score = Math.round((data.final_risk_probability || 0) * 100);
+      onRiskUpdate?.(patient._id, { score, streams: Object.entries(data.stream_risks || {}).map(([name, value]) => ({ name, value: Math.round(value * 100) })), drivers: [], evaluation: data });
+      setEvaluation({ patient, data });
+      toast.success("Risk evaluation completed.");
+    } catch (error) { setEvaluation(null); toast.error(error.message); }
+    finally { setEvaluating(null); }
+  };
 
   // Attach a risk record to each patient, then sort highest risk first.
   const rows = useMemo(() => {
     return patients
       .map((patient) => {
-        const risk = riskData[patient._id] || getRiskForPatient(patient);
-        return { patient, ...risk, level: getRiskLevel(risk.score) };
+        const risk = riskData[patient._id];
+        return { patient, ...(risk || { score: null, streams: [], drivers: [], level: null }), level: risk ? getRiskLevel(risk.score) : null };
       })
       .sort((a, b) => b.score - a.score);
   }, [patients, riskData]);
@@ -105,6 +159,12 @@ function RiskMonitoringView({ patients = [], riskData = {} }) {
     }),
     [rows],
   );
+
+  const visibleRows = useMemo(() => rows.filter((row) => {
+    const matchesName = row.patient.name?.toLowerCase().includes(search.trim().toLowerCase());
+    const matchesRisk = riskFilter === "all" || (riskFilter === "none" ? row.level == null : row.level === riskFilter);
+    return matchesName && matchesRisk;
+  }), [rows, search, riskFilter]);
 
   const selectedRow = selected ? rows.find((r) => r.patient._id === selected) : null;
 
@@ -123,20 +183,28 @@ function RiskMonitoringView({ patients = [], riskData = {} }) {
           </div>
         </div>
 
-        <div className="risk-list">
-          {rows.length === 0 && <p className="add-patient-empty">No patients have been added yet.</p>}
+        <div className="risk-filter-bar">
+          <label className="risk-search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search patient name..." aria-label="Search patient name" /></label>
+          <div className="risk-filter-pills" role="group" aria-label="Filter by risk level">
+            {[['all', 'All'], ['high', 'High'], ['moderate', 'Moderate'], ['low', 'Low'], ['none', 'Not evaluated']].map(([value, label]) => <button key={value} type="button" className={`risk-filter-pill risk-filter-pill-${value}${riskFilter === value ? " active" : ""}`} onClick={() => setRiskFilter(value)}>{label}</button>)}
+          </div>
+        </div>
 
-          {rows.map((row, index) => (
+        <div className="risk-list">
+          {!loadingScores && visibleRows.length === 0 && <p className="add-patient-empty">{rows.length === 0 ? "No patients have been added yet." : "No patients match your search or filter."}</p>}
+
+          {loadingScores && patients.filter((patient) => patient.name?.toLowerCase().includes(search.trim().toLowerCase())).map((patient, index) => <motion.div key={patient._id} className="risk-row risk-row-loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.04 }}><div className="patient-avatar risk-loading-pulse" /><div className="risk-row-patient"><strong>{patient.name}</strong><span>Loading saved risk score…</span></div><span className="risk-loading-spinner"><RefreshCw size={15} /></span></motion.div>)}
+          {!loadingScores && visibleRows.map((row, index) => (
             <motion.div
               key={row.patient._id}
               className={`risk-row risk-row-${row.level}`}
               role="button"
               tabIndex={0}
-              onClick={() => setSelected(row.patient._id)}
+              onClick={() => row.score != null && setSelected(row.patient._id)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  setSelected(row.patient._id);
+                  if (row.score != null) setSelected(row.patient._id);
                 }
               }}
               initial={{ opacity: 0, x: -10 }}
@@ -158,8 +226,13 @@ function RiskMonitoringView({ patients = [], riskData = {} }) {
                 <span>{row.patient.email}</span>
               </div>
 
-              <span className="risk-row-level">{LEVEL_LABEL[row.level]}</span>
-              <RiskBadge score={row.score} />
+              <span className="risk-row-level">{row.level ? LEVEL_LABEL[row.level] : "Not evaluated"}</span>
+              {row.score == null ? <span className="risk-not-evaluated">—</span> : <RiskBadge score={row.score} />}
+              <button className="risk-reevaluate-button" type="button" onClick={(event) => reevaluate(row.patient, event)} disabled={evaluating === row.patient._id}>
+                <RefreshCw size={14} className={evaluating === row.patient._id ? "risk-spin" : ""} />
+                {evaluating === row.patient._id ? "Evaluating" : "Re-evaluate"}
+              </button>
+              <button className="risk-history-button" type="button" onClick={(event) => openRiskHistory(row.patient, event)} aria-label={`View risk history for ${row.patient.name}`} title="View risk history"><ChartLine size={16} /></button>
               <ChevronRight size={16} className="risk-row-chevron" />
             </motion.div>
           ))}
@@ -225,6 +298,26 @@ function RiskMonitoringView({ patients = [], riskData = {} }) {
           </section>
         </div>
       )}
+      {evaluation && (
+        <div className="profile-overlay risk-evaluation-overlay" onClick={() => !evaluation.loading && setEvaluation(null)}>
+          <section className="doctor-card risk-evaluation-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="doctor-card-header">
+              <div><p className="eyebrow">GENEAIR AI MODEL</p><h2>Risk evaluation</h2><p>{evaluation.patient.name}</p></div>
+              {!evaluation.loading && <button className="profile-close-button" type="button" onClick={() => setEvaluation(null)} aria-label="Close evaluation"><X size={19} /></button>}
+            </div>
+            {evaluation.loading ? <div className="risk-evaluation-loading"><RefreshCw className="risk-spin" size={30} /><h3>Evaluating patient data…</h3><p>Combining static, clinical, medication, wearable, and TVL validity signals.</p></div> : (
+              <div className="risk-evaluation-result">
+                <div className={`risk-explain-score risk-explain-score-${getRiskLevel((evaluation.data.final_risk_probability || 0) * 100)}`}><ShieldCheck size={24} /><div><span>{evaluation.data.risk_state_demo === "elevated" ? "Needs closer review" : "Currently lower risk"}</span><strong>{Math.round((evaluation.data.final_risk_probability || 0) * 100)}%</strong></div></div>
+                <p className="risk-evaluation-friendly">This score combines the patient’s profile, your clinical notes, medication information, and latest wearable readings.</p>
+                <h3>Data validity (TVL)</h3><div className="risk-tvl-grid">{Object.entries(evaluation.data.tvl?.families || {}).map(([name, value]) => { const label = ({ watch: "Wearable readings", environment: "Air and environment", peakflow: "Peak flow", symptoms: "Symptoms", med_daily: "Medication", smart_inhaler: "Smart inhaler", static: "Patient profile" })[name] || name; const expanded = expandedTvl === name; return <button className={`risk-tvl-item${expanded ? " is-expanded" : ""}`} type="button" key={name} onClick={() => setExpandedTvl(expanded ? null : name)}><span className="risk-tvl-item-head"><strong>{label}</strong><span className={value.stale ? "tvl-stale" : "tvl-valid"}>{Math.round((value.gamma || 0) * 100)}% validity</span></span>{expanded && <span className="risk-tvl-details"><span>Data age: {value.age_days == null ? "Unknown" : `${Number(value.age_days).toFixed(1)} days`}</span><span>Coverage: {Math.round((value.coverage || 0) * 100)}%</span><span>Completeness: {Math.round((value.completeness || 0) * 100)}%</span><span>TVL status: {value.stale ? "Older than the recommended window" : "Within the recommended window"}</span></span>}</button>; })}</div>
+                {evaluation.data.input_warnings?.length > 0 && <div className="risk-evaluation-warning"><TriangleAlert size={17} /><span>Some information is missing, so the result may be less reliable.</span></div>}
+                <p className="risk-evaluation-note">Use this result to support your clinical review. It does not replace professional judgment.</p>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+      {historyPatient && <div className="profile-overlay risk-history-overlay" onClick={() => setHistoryPatient(null)}><section className="doctor-card risk-history-modal" onClick={(event) => event.stopPropagation()}><div className="doctor-card-header"><div><p className="eyebrow">RISK HISTORY</p><h2>{historyPatient.name}</h2><p>Saved AI evaluations</p></div><button className="profile-close-button" type="button" onClick={() => setHistoryPatient(null)}><X size={19} /></button></div>{history === null ? <div className="risk-evaluation-loading"><RefreshCw className="risk-spin" size={28} /><p>Loading saved scores…</p></div> : history.length === 0 ? <p className="add-patient-empty">No saved evaluations yet. Use Re-evaluate to create the first score.</p> : <div className="risk-history-chart"><ResponsiveContainer width="100%" height={280}><LineChart data={history}><XAxis dataKey="time" hide /><YAxis domain={[0, 100]} unit="%" /><Tooltip labelFormatter={(value) => value} formatter={(value) => [`${value}%`, "Risk score"]} /><Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={3} dot={{ r: 5 }} /></LineChart></ResponsiveContainer><div className="risk-history-list">{[...history].reverse().map((item) => <div key={item._id}><strong>{item.score}%</strong><span>{item.time}</span></div>)}</div></div>}</section></div>}
     </>
   );
 }
@@ -232,7 +325,8 @@ function RiskMonitoringView({ patients = [], riskData = {} }) {
 function getAlertsLast24h(patients, riskData, now) {
   const cutoff = now - ALERT_WINDOW_HOURS * HOUR_MS;
   return patients.flatMap((patient) => {
-    const risk = riskData[patient._id] || getRiskForPatient(patient);
+    const risk = riskData[patient._id];
+    if (!risk) return [];
     if (getRiskLevel(risk.score) !== "high") return [];
 
     // Real alert time if the backend provides it, otherwise a simulated one.

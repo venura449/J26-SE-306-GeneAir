@@ -2,6 +2,8 @@ import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DoctorDashboard from "./Pages/DoctorDash/Doctordashboard";
 import API_URL from "./config/api";
+import { ToastContainer, toast } from "react-toastify";
+import FloatingChatBubble from "./components/FloatingChatBubble";
 
 function AuthPage() {
   const [mode, setMode] = useState("login");
@@ -32,14 +34,10 @@ function AuthPage() {
       if (data.token) localStorage.setItem("geneair_token", data.token);
       if (data.user)
         localStorage.setItem("geneair_user", JSON.stringify(data.user));
-      setMessage(
-        mode === "forgot"
-          ? data.message
-          : "You’re all set. Welcome to GeneAir.",
-      );
+      toast.success(mode === "forgot" ? data.message : "You’re all set. Welcome to GeneAir.");
       if (mode !== "forgot") window.location.href = "/doctor-dashboard";
     } catch (error) {
-      setMessage(error.message || "Something went wrong. Please try again.");
+      toast.error(error.message || "Something went wrong. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -51,10 +49,7 @@ function AuthPage() {
       : mode === "register"
         ? "Create your account"
         : "Reset your password";
-  const signInWithGoogle = () =>
-    setMessage(
-      "Google sign-in needs a Google OAuth client ID and callback URL configured first.",
-    );
+  const signInWithGoogle = () => toast.info("Google sign-in needs a Google OAuth client ID and callback URL configured first.");
   return (
     <main className="auth-page">
       <section className="auth-brand">
@@ -176,6 +171,8 @@ function AuthPage() {
 function App() {
   return (
     <BrowserRouter>
+      <ToastContainer position="top-right" autoClose={3500} newestOnTop theme="colored" />
+      <FloatingChatBubble />
       <Routes>
         <Route path="*" element={<AuthPage />} />
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Cropper from "react-easy-crop";
 import logo from "../../assets/logo.png";
 import API_URL from "../../config/api";
@@ -192,6 +192,8 @@ function DoctorDashboard() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientRecord, setPatientRecord] = useState(null);
   const [isRecordLoading, setIsRecordLoading] = useState(false);
+  const [riskData, setRiskData] = useState({});
+  const handleRiskUpdate = useCallback((patientId, result) => setRiskData((current) => ({ ...current, [patientId]: result })), []);
 
 
   
@@ -887,7 +889,7 @@ function DoctorDashboard() {
               </button>
             </motion.div>}
             {activeSection === "Risk Monitoring" && (
-              <RiskMonitoringView patients={doctorPatients} />
+              <RiskMonitoringView patients={doctorPatients} riskData={riskData} onRiskUpdate={handleRiskUpdate} />
             )}
           </section>
 

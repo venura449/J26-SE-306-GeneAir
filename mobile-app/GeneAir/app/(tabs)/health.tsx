@@ -22,7 +22,7 @@ export default function HealthScreen() {
         spo2: '--',
         temp: '--',
     });
-    
+
     const { watchData } = useContext(WatchContext);
 
     const displayHR = watchData ? watchData.heartRate : vitals.heartRate;
@@ -54,6 +54,47 @@ export default function HealthScreen() {
         <ScrollView style={[styles.container, { backgroundColor: APP_BG }]}>
             <View style={styles.header}>
                 <Text style={[styles.titleText, { color: NAVY_TEXT }]}>Health Overview</Text>
+            </View>
+            <View style={styles.content}>
+                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
+                    <View style={styles.cardContent}>
+                        <View style={styles.cardHeader}>
+                            <View style={[styles.iconContainer, { backgroundColor: '#FFEAEA' }]}>
+                                <Ionicons name="heart" size={22} color="#FF5252" />
+                            </View>
+                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Heart Rate</Text>
+                        </View>
+                        <Text style={[styles.cardValue, { color: NAVY_TEXT }]} >
+                            {displayHR} <Text style={[styles.unit, { color: GRAY_TEXT }]}>bpm</Text>
+                        </Text>
+                    </View>
+                </View>
+                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
+                    <View style={styles.cardContent}>
+                        <View style={styles.cardHeader}>
+                            <View style={[styles.iconContainer, { backgroundColor: '#e0e8f4' }]}>
+                                <Ionicons name="water" size={22} color="#00C4B4" />
+                            </View>
+                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>SpO2</Text>
+                        </View>
+                        <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
+                            {displaySpO2} <Text style={[styles.unit, { color: GRAY_TEXT }]}>%</Text>
+                        </Text>
+                    </View>
+                </View>
+                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
+                    <View style={styles.cardContent}>
+                        <View style={styles.cardHeader}>
+                            <View style={[styles.iconContainer, { backgroundColor: '#e0e8f4' }]}>
+                                <Ionicons name="thermometer" size={22} color="#00C4B4" />
+                            </View>
+                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Temp</Text>
+                        </View>
+                        <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
+                            {displayTemp} <Text style={[styles.unit, { color: GRAY_TEXT }]}>°C</Text>
+                        </Text>
+                    </View>
+                </View>
             </View>
             <View>
                 <Text style={[styles.subTitleText, { color: NAVY_TEXT, paddingHorizontal: 24 }]}>
@@ -102,47 +143,7 @@ export default function HealthScreen() {
                     </View>
                 </View>
             </View>
-            <View style={styles.content}>
-                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
-                    <View style={styles.cardContent}>
-                        <View style={styles.cardHeader}>
-                            <View style={[styles.iconContainer, { backgroundColor: '#FFEAEA' }]}>
-                                <Ionicons name="heart" size={22} color="#FF5252" />
-                            </View>
-                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Heart Rate</Text>
-                        </View>
-                        <Text style={[styles.cardValue, { color: NAVY_TEXT }]} >
-                            {displayHR} <Text style={[styles.unit, { color: GRAY_TEXT }]}>bpm</Text>
-                        </Text>
-                    </View>
-                </View>
-                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
-                    <View style={styles.cardContent}>
-                        <View style={styles.cardHeader}>
-                            <View style={[styles.iconContainer, { backgroundColor: '#e0e8f4' }]}>
-                                <Ionicons name="water" size={22} color="#00C4B4" />
-                            </View>
-                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>SpO2</Text>
-                        </View>
-                        <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
-                            {displaySpO2} <Text style={[styles.unit, { color: GRAY_TEXT }]}>%</Text>
-                        </Text>
-                    </View>
-                </View>
-                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
-                    <View style={styles.cardContent}>
-                        <View style={styles.cardHeader}>
-                            <View style={[styles.iconContainer, { backgroundColor: '#e0e8f4' }]}>
-                                <Ionicons name="thermometer" size={22} color="#00C4B4" />
-                            </View>
-                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Temp</Text>
-                        </View>
-                        <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
-                            {displayTemp} <Text style={[styles.unit, { color: GRAY_TEXT }]}>°C</Text>
-                        </Text>
-                    </View>
-                </View>
-            </View>
+
         </ScrollView>
     )
 
@@ -238,10 +239,10 @@ const styles = StyleSheet.create({
     },
     content: {
         paddingHorizontal: 24,
-        paddingBottom: 40,
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
+        marginTop: 20,
     },
     card: {
         borderRadius: 16,

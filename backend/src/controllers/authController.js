@@ -8,11 +8,11 @@ function validCredentials(body) {
 }
 async function register(request, response) {
   try {
-    logger.info("Registration attempt for email: " + request.body.email);
+    logger.info(`Registration attempt for email: ${request.body.email}`);
 
     if (!validCredentials(request.body)) {
       logger.warn(
-        "Invalid registration attempt for email: " + request.body.email,
+        `Invalid registration attempt for email: ${request.body.email}`,
       );
 
       return response.status(400).json({

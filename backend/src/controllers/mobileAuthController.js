@@ -30,20 +30,20 @@ async function mobileRegister(req, res) {
 
 async function mobileLogin(req, res) {
   try {
-    logger.info("Mobile login attempt: ", req.body.email);
+    logger.info(`Mobile login attempt: ${req.body.email} ` );
     const { email, password } = req.body;
     if (!email?.includes("@") || !password) {
-      logger.warn("Invalid mobile login attempt: ", req.body.email);
+      logger.warn(`Invalid mobile login attempt: ${req.body.email}`);
       return res
         .status(400)
         .json({ message: "Enter your email and password." });
     }
     const user = await authService.login(email, password);
     if (!user) {
-      logger.warn("Mobile login failed: User not found: ", req.body.email);
+      logger.warn(`Mobile login failed: User not found: ${req.body.email}`);
       return res.status(401).json({ message: "Invalid email or password." });
     }
-    logger.info("Mobile login successful: ", req.body.email);
+    logger.info(`Mobile login successful: ${req.body.email}`);
     return res.json(user);
   } catch (error) {
     logger.error("Mobile login failed: ", error);
@@ -54,17 +54,17 @@ async function mobileLogin(req, res) {
 }
 
 async function mobileLogout(req, res) {
-  logger.info("Mobile logout attempt: ", req.user.sub);
+  logger.info(`Mobile logout attempt: ${req.user.sub}`);
   try {
     await authService.revokeSession(req.tokenId);
   } catch (error) {
-    logger.error("Mobile logout failed: ", error);
+    logger.error(`Mobile logout failed: ${error}`);
   }
-  logger.info("Mobile logout successful: ", req.user.sub);
+  logger.info(`Mobile logout successful: ${req.user.sub}`);
   return res.status(204).send();
 }
 async function mobileForgotPassword(req, res) {
-  logger.info("Mobile forgot password attempt: ", req.body.email);
+  logger.info(`Mobile forgot password attempt: ${req.body.email}`);
   if (!req.body.email?.includes("@"))
     return res.status(400).json({ message: "Enter a valid email address." });
   return res.json({
@@ -74,10 +74,10 @@ async function mobileForgotPassword(req, res) {
 }
 async function mobileProfile(req, res) {
   try {
-    logger.info("Mobile profile load attempt: ", req.user.sub);
+    logger.info(`Mobile profile load attempt: ${req.user.sub}`);
     return res.json(await authService.getProfile(req.user.sub));
   } catch (error) {
-    logger.error("Mobile profile load failed: ", error);
+    logger.error(`Mobile profile load failed: ${error}`);
     console.error("Mobile profile load failed:", error);
     return res
       .status(error.status || 500)
@@ -86,7 +86,7 @@ async function mobileProfile(req, res) {
 }
 async function mobileUpdateProfile(req, res) {
   try {
-    logger.info("Mobile profile update attempt: ", req.user.sub);
+    logger.info(`Mobile profile update attempt: ${req.user.sub}`);
     const profile = {
       name: req.body.name?.trim(),
       dateOfBirth: req.body.dateOfBirth?.trim() || "",

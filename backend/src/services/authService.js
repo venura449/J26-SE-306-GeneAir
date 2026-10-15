@@ -80,6 +80,7 @@ async function login(email, password) {
 
 async function getProfile(userId) {
   const user = await User.findById(userId);
+  logger.info(`Fetching user profile: ${userId}`);
 
   if (!user) {
     logger.warn(

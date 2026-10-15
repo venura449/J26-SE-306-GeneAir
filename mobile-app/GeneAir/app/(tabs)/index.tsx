@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import {WatchContext} from "../WatchContext";
 import {
   Alert,
   Pressable,
@@ -163,7 +164,7 @@ export default function HomeScreen() {
   const [deviceOpen, setDeviceOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scannedDevices, setScannedDevices] = useState<Device[]>([]);
-  const [watchData, setWatchData] = useState<WatchPacket | null>(null);
+  const { watchData, setWatchData } = useContext(WatchContext);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
   const [locationName, setLocationName] = useState<string>("Locating...");
   const [hrHistory, setHrHistory] = useState<number[]>([0, 0, 0, 0, 0, 0]);

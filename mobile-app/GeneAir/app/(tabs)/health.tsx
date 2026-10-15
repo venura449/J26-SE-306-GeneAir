@@ -1,6 +1,7 @@
 import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { WatchContext } from '../WatchContext';
 import { getVitals } from '@/config/api';
 
 
@@ -21,6 +22,13 @@ export default function HealthScreen() {
         spo2: '--',
         temp: '--',
     });
+    
+    const { watchData } = useContext(WatchContext);
+
+    const displayHR = watchData ? watchData.heartRate : vitals.heartRate;
+    const displaySpO2 = watchData ? watchData.spo2 : vitals.spo2;
+    const displayTemp = watchData ? watchData.bodyTemp.toFixed(1) : vitals.temp;
+
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -104,7 +112,7 @@ export default function HealthScreen() {
                             <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Heart Rate</Text>
                         </View>
                         <Text style={[styles.cardValue, { color: NAVY_TEXT }]} >
-                            {vitals.heartRate} <Text style={[styles.unit, { color: GRAY_TEXT }]}>bpm</Text>
+                            {displayHR} <Text style={[styles.unit, { color: GRAY_TEXT }]}>bpm</Text>
                         </Text>
                     </View>
                 </View>
@@ -117,7 +125,7 @@ export default function HealthScreen() {
                             <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>SpO2</Text>
                         </View>
                         <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
-                            {vitals.spo2} <Text style={[styles.unit, { color: GRAY_TEXT }]}>%</Text>
+                            {displaySpO2} <Text style={[styles.unit, { color: GRAY_TEXT }]}>%</Text>
                         </Text>
                     </View>
                 </View>
@@ -130,7 +138,7 @@ export default function HealthScreen() {
                             <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Temp</Text>
                         </View>
                         <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
-                            {vitals.temp} <Text style={[styles.unit, { color: GRAY_TEXT }]}>°C</Text>
+                            {displayTemp} <Text style={[styles.unit, { color: GRAY_TEXT }]}>°C</Text>
                         </Text>
                     </View>
                 </View>

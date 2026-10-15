@@ -4,6 +4,9 @@ import {
   KeyboardAvoidingView, Platform, View, Text
 } from 'react-native';
 
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 type Message = {
@@ -13,18 +16,21 @@ type Message = {
 };
 
 export default function ExploreScreen() {
+
+  const router = useRouter();
+
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', text: 'Hello! How can I help you today?', sender: 'bot' }
   ]);
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList>(null);
 
-  // Theme colors extracted perfectly matching your UI design
-  const APP_BG = '#F8F9FA';       // Soft light background from the image
-  const NAVY_TEXT = '#1A2144';    // Deep navy blue used for headings and primary text
-  const CARD_BG = '#FFFFFF';      // White used for the health overview cards
-  const PRIMARY_BLUE = '#4258B8'; // Blue accent matching the profile icon 
-  const GRAY_TEXT = '#7A8299';    // Muted color for secondary text/placeholders
+
+  const APP_BG = '#F8F9FA';
+  const NAVY_TEXT = '#1A2144';
+  const CARD_BG = '#FFFFFF';
+  const PRIMARY_BLUE = '#4258B8';
+  const GRAY_TEXT = '#7A8299';
 
   const sendMessage = () => {
     if (!inputText.trim()) return;
@@ -38,7 +44,6 @@ export default function ExploreScreen() {
     setMessages((prev) => [...prev, newUserMsg]);
     setInputText('');
 
-    // Simulate network delay and bot response
     setTimeout(() => {
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -77,6 +82,13 @@ export default function ExploreScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 15}
       >
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={24} color={NAVY_TEXT} />
+          </TouchableOpacity>
           <Text style={[styles.titleText, { color: NAVY_TEXT }]}>
             GeneAir Assistant
           </Text>
@@ -118,14 +130,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 50,
     paddingBottom: 15,
     paddingHorizontal: 24,
-    // Removed the bottom border to match the clean aesthetic of your other screens
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    elevation: 3,
+  },
+  backButton: {
+    marginRight: 12,
+    marginTop: 2,
+    color: '#1A2144',
   },
   titleText: {
     fontSize: 22,
     fontWeight: '600',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
     letterSpacing: -0.5,
   },
   listContent: {
@@ -149,12 +171,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   userBubble: {
-    borderBottomRightRadius: 4, // Gives a "chat tail" effect
+    borderBottomRightRadius: 4,
   },
   botBubble: {
     backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 4,
-    // Soft shadow matching the health overview cards in your design
+
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
@@ -174,7 +196,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginRight: 12,
     fontSize: 15,
-    // Input shadow to match the card style
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,

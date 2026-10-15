@@ -2,7 +2,7 @@ const winston = require("winston");
 
 const logFormat = winston.format.printf(
   ({ timestamp, level, message, stack }) => {
-    return `[${timestamp}] ${level}: ${message} ${stack}`;
+    return `[${timestamp}] ${level}: ${stack ? stack : message}`;
   },
 );
 

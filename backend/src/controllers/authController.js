@@ -59,6 +59,7 @@ async function login(request, response) {
 
 async function logout(request, response) {
   logger.info(`Logout attempt for token: ${request.tokenId}`);
+  logger.info(`Logout successful for token: ${request.tokenId}`);
   await authService.revokeSession(request.tokenId);
   return response.status(204).send();
 }

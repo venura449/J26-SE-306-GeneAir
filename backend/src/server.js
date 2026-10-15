@@ -8,6 +8,8 @@ const mobileAuthRoutes = require("./routes/mobileAuthRoutes");
 const riskRoutes = require("./routes/riskRoutes");
 const app = express();
 const port = process.env.PORT || 4000;
+const logger = require("./utils/logger");
+
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(path.resolve(__dirname, "../uploads")));
@@ -17,9 +19,9 @@ app.use("/api/mobile/auth", mobileAuthRoutes);
 app.use("/api/risk", riskRoutes);
 async function start() {
   if (!process.env.MONGODB_URI || !process.env.JWT_SECRET)
-    throw new Error("MONGODB_URI and JWT_SECRET are required");
+    logger.error("MONGODB_URI and JWT_SECRET are required");
   await mongoose.connect(process.env.MONGODB_URI);
-  app.listen(port, () => console.log(`GeneAir API listening on port ${port}`));
+  app.listen(port, () => logger.info(`GeneAir API listening on port ${port}`));
 }
 if (require.main === module)
   start().catch((error) => {

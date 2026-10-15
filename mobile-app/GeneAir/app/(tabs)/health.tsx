@@ -1,5 +1,9 @@
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
+import { getVitals } from '@/config/api';
+
+
 
 export default function HealthScreen() {
     const APP_BG = '#F8F9FA';
@@ -7,6 +11,36 @@ export default function HealthScreen() {
     const CARD_BG = '#FFFFFF';
     const PRIMARY_BLUE = '#4258B8';
     const GRAY_TEXT = '#7A8299';
+
+    const [vitals, setVitals] = useState<{
+        heartRate: string | number;
+        spo2: string | number;
+        temp: string | number;
+    }>({
+        heartRate: '--',
+        spo2: '--',
+        temp: '--',
+    });
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUserVitals = async () => {
+            try {
+                const data = await getVitals();
+
+                setVitals({
+                    heartRate: data.heartRate || '--',
+                    spo2: data.spo2 || '--',
+                    temp: data.temp || '--',
+                });
+            } catch (error) {
+                console.error("Error fetching vitals: ", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchUserVitals();
+    }, []);
 
     return (
         <ScrollView style={[styles.container, { backgroundColor: APP_BG }]}>
@@ -70,7 +104,7 @@ export default function HealthScreen() {
                             <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Heart Rate</Text>
                         </View>
                         <Text style={[styles.cardValue, { color: NAVY_TEXT }]} >
-                            72 <Text style={[styles.unit, { color: GRAY_TEXT }]}>bpm</Text>
+                            {vitals.heartRate} <Text style={[styles.unit, { color: GRAY_TEXT }]}>bpm</Text>
                         </Text>
                     </View>
                 </View>
@@ -83,7 +117,7 @@ export default function HealthScreen() {
                             <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>SpO2</Text>
                         </View>
                         <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
-                            98 <Text style={[styles.unit, { color: GRAY_TEXT }]}>%</Text>
+                            {vitals.spo2} <Text style={[styles.unit, { color: GRAY_TEXT }]}>%</Text>
                         </Text>
                     </View>
                 </View>
@@ -96,7 +130,7 @@ export default function HealthScreen() {
                             <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Temp</Text>
                         </View>
                         <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
-                            36.5 <Text style={[styles.unit, { color: GRAY_TEXT }]}>°C</Text>
+                            {vitals.temp} <Text style={[styles.unit, { color: GRAY_TEXT }]}>°C</Text>
                         </Text>
                     </View>
                 </View>

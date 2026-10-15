@@ -1,4 +1,5 @@
 const authService = require("../services/authService");
+const logger = requrie("../utils/logger");
 
 function validCredentials(body) {
   return (
@@ -7,65 +8,91 @@ function validCredentials(body) {
 }
 async function register(request, response) {
   try {
-    if (!validCredentials(request.body))
-      return response
-        .status(400)
-        .json({
-          message:
-            "Enter a name, valid email, and password with at least 8 characters.",
-        });
-    return response.status(201).json(await authService.register(request.body));
-  } catch (error) {
-    console.error("Registration failed:", error);
-    return response
-      .status(error.status || 500)
-      .json({
-        message: error.status
-          ? error.message
-          : error.message,
+    logger.info("Registration attempt for email: " + request.body.email);
+
+    if (!validCredentials(request.body)) {
+      logger.warn(
+        "Invalid registration attempt for email: " + request.body.email,
+      );
+
+      return response.status(400).json({
+        message:
+          "Enter a name, valid email, and password with at least 8 characters.",
       });
+    }
+
+    const newuser = await authService.register(request.body);
+    logger.info(`Successfully registered user: ${newuser._id}`);
+    return response.status(201).json(newuser);
+  } catch (error) {
+    logger.error("Registration failed:", error);
+
+    return response.status(error.status || 500).json({
+      message: error.status ? error.message : error.message,
+    });
   }
 }
 async function login(request, response) {
   try {
     const { email, password } = request.body;
-    if (!email?.includes("@") || !password)
+
+    logger.info(`Login attempt for email: ${email}`);
+
+    if (!email?.includes("@") || !password){
+      logger.warn(`Invalid login attempt for email: ${email}`);
+
       return response
         .status(400)
         .json({ message: "Enter your email and password." });
-    return response.json(await authService.login(email, password));
+    }
+    const user = await authService.login(email,password);
+    logger.info(`Successfully logged in user: ${user.id}`);
+    return response.json(user);
+
   } catch (error) {
-    console.error("Login failed:", error);
-    return response
-      .status(error.status || 500)
-      .json({
-        message: error.status ? error.message : "Unable to sign in right now.",
-      });
+    logger.error("Login failed: ",error);
+
+    return response.status(error.status || 500).json({
+      message: error.status ? error.message : "Unable to sign in right now.",
+    });
   }
 }
+
+
 async function logout(request, response) {
+  logger.info(`Logout attempt for token: ${request.tokenId}`);
   await authService.revokeSession(request.tokenId);
   return response.status(204).send();
 }
+
+
 async function forgotPassword(request, response) {
-  if (!request.body.email?.includes("@"))
+
+  logger.info(`Password reset attempt for email: ${request.body.email}`);
+
+  if (!request.body.email?.includes("@")){
+  logger.warn(`Invalid password reset attempt for email: ${request.body.email}`);
+
     return response
       .status(400)
       .json({ message: "Enter a valid email address." });
+  }
+    
   return response.json({
     message:
       "If an account exists for this email, reset instructions will be sent.",
   });
 }
+
 async function getProfile(request, response) {
   try {
     return response.json(await authService.getProfile(request.user.sub));
   } catch (error) {
-    return response
-      .status(error.status || 500)
-      .json({
-        message: error.status ? error.message : "Unable to load your profile.",
-      });
+    logger.error("Profile load failed: ", error);
+
+    return response.status(error.status || 500).json({
+      message: error.status ? error.message : "Unable to load your profile.",
+    });
   }
 }
 async function updateProfile(request, response) {
@@ -86,11 +113,10 @@ async function updateProfile(request, response) {
       await authService.updateProfile(request.user.sub, profile),
     );
   } catch (error) {
-    return response
-      .status(error.status || 500)
-      .json({
-        message: error.status ? error.message : "Unable to save your profile.",
-      });
+    logger.error("Profile update failed: ", error);
+    return response.status(error.status || 500).json({
+      message: error.status ? error.message : "Unable to save your profile.",
+    });
   }
 }
 

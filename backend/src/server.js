@@ -25,7 +25,7 @@ async function start() {
 }
 if (require.main === module)
   start().catch((error) => {
-    console.error(error.message);
+    logger.error(error.message);
     process.exit(1);
   });
 module.exports = app;

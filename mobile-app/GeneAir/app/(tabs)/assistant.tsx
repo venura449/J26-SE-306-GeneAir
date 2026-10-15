@@ -82,13 +82,6 @@ export default function ExploreScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 15}
       >
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="chevron-back" size={24} color={NAVY_TEXT} />
-          </TouchableOpacity>
           <Text style={[styles.titleText, { color: NAVY_TEXT }]}>
             GeneAir Assistant
           </Text>
@@ -130,11 +123,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 15,
+    paddingTop: 60,
+    paddingBottom: 20,
     paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#F8F9FA',
     elevation: 3,
   },
@@ -144,7 +135,7 @@ const styles = StyleSheet.create({
     color: '#1A2144',
   },
   titleText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '600',
     includeFontPadding: false,
     textAlignVertical: 'center',

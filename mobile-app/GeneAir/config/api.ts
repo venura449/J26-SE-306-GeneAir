@@ -32,6 +32,11 @@ export type User = {
 };
 
 type AuthResponse = { token: string; user: User };
+export type VitalsResponse = {
+  heartRate: number | string;
+  spo2: number | string;
+  temp: number | string;
+};
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response;
@@ -136,4 +141,16 @@ export async function syncWatchData(data: any) {
   } catch (e) {
     console.log("Watch sync error", e);
   }
+}
+
+//vitals fetch for health screen
+export async function getVitals() {
+  const token = await SecureStore.getItemAsync(tokenKey);
+  if (!token) {
+    throw new Error("Auth token not found");
+  }
+  return request<VitalsResponse>("/vitals/me", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }

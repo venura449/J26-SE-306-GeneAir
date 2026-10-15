@@ -3,7 +3,8 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -13,7 +14,6 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
@@ -25,10 +25,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="health"
+        options={{
+          title: 'Health',
+          tabBarIcon: ({ color }) => <FontAwesome name="heartbeat" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="assistant"
         options={{
           title: 'Assistant',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="assistant" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <MaterialIcons name="assistant" size={24} color={color} />,
         }}
       />
     </Tabs>

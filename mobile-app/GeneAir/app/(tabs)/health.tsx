@@ -1,8 +1,9 @@
-import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useContext } from 'react';
-import { WatchContext } from '../WatchContext';
-import { getVitals } from '@/config/api';
+import { WatchContext } from '../../context/WatchContext';
+import { LineChart } from 'react-native-chart-kit';
+
 
 
 
@@ -13,88 +14,18 @@ export default function HealthScreen() {
     const PRIMARY_BLUE = '#4258B8';
     const GRAY_TEXT = '#7A8299';
 
-    const [vitals, setVitals] = useState<{
-        heartRate: string | number;
-        spo2: string | number;
-        temp: string | number;
-    }>({
-        heartRate: '--',
-        spo2: '--',
-        temp: '--',
-    });
+    const screenWidth = Dimensions.get("window").width;
 
-    const { watchData } = useContext(WatchContext);
+    const { watchData, hrHistory, spo2History, tempHistory } = useContext(WatchContext)
 
-    const displayHR = watchData ? watchData.heartRate : vitals.heartRate;
-    const displaySpO2 = watchData ? watchData.spo2 : vitals.spo2;
-    const displayTemp = watchData ? watchData.bodyTemp.toFixed(1) : vitals.temp;
-
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchUserVitals = async () => {
-            try {
-                const data = await getVitals();
-
-                setVitals({
-                    heartRate: data.heartRate || '--',
-                    spo2: data.spo2 || '--',
-                    temp: data.temp || '--',
-                });
-            } catch (error) {
-                console.error("Error fetching vitals: ", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchUserVitals();
-    }, []);
+    const displayHR = watchData ? watchData.heartRate : '--';
+    const displaySpO2 = watchData ? watchData.spo2 : '--';
+    const displayTemp = watchData ? watchData.bodyTemp.toFixed(1) : '--';
 
     return (
         <ScrollView style={[styles.container, { backgroundColor: APP_BG }]}>
             <View style={styles.header}>
                 <Text style={[styles.titleText, { color: NAVY_TEXT }]}>Health Overview</Text>
-            </View>
-            <View style={styles.content}>
-                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
-                    <View style={styles.cardContent}>
-                        <View style={styles.cardHeader}>
-                            <View style={[styles.iconContainer, { backgroundColor: '#FFEAEA' }]}>
-                                <Ionicons name="heart" size={22} color="#FF5252" />
-                            </View>
-                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Heart Rate</Text>
-                        </View>
-                        <Text style={[styles.cardValue, { color: NAVY_TEXT }]} >
-                            {displayHR} <Text style={[styles.unit, { color: GRAY_TEXT }]}>bpm</Text>
-                        </Text>
-                    </View>
-                </View>
-                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
-                    <View style={styles.cardContent}>
-                        <View style={styles.cardHeader}>
-                            <View style={[styles.iconContainer, { backgroundColor: '#e0e8f4' }]}>
-                                <Ionicons name="water" size={22} color="#00C4B4" />
-                            </View>
-                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>SpO2</Text>
-                        </View>
-                        <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
-                            {displaySpO2} <Text style={[styles.unit, { color: GRAY_TEXT }]}>%</Text>
-                        </Text>
-                    </View>
-                </View>
-                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
-                    <View style={styles.cardContent}>
-                        <View style={styles.cardHeader}>
-                            <View style={[styles.iconContainer, { backgroundColor: '#e0e8f4' }]}>
-                                <Ionicons name="thermometer" size={22} color="#00C4B4" />
-                            </View>
-                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Temp</Text>
-                        </View>
-                        <Text style={[styles.cardValue, { color: NAVY_TEXT }]}>
-                            {displayTemp} <Text style={[styles.unit, { color: GRAY_TEXT }]}>°C</Text>
-                        </Text>
-                    </View>
-                </View>
             </View>
             <View>
                 <Text style={[styles.subTitleText, { color: NAVY_TEXT, paddingHorizontal: 24 }]}>
@@ -143,33 +74,125 @@ export default function HealthScreen() {
                     </View>
                 </View>
             </View>
+            <View style={styles.content}>
+                {/* Heart Rate Card */}
+                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
+                    <View style={styles.cardHeaderRow}>
+                        <View style={styles.cardHeaderLeft}>
+                            <View style={[styles.iconContainer, { backgroundColor: '#FFEAEA' }]}>
+                                <Ionicons name="heart" size={22} color="#FF5252" />
+                            </View>
+                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Heart Rate</Text>
+                        </View>
+                        <View style={styles.valueContainer}>
+                            <Text style={[styles.cardValue, { color: '#e91e63' }]} adjustsFontSizeToFit numberOfLines={1}>
+                                {displayHR}
+                            </Text>
+                            <Text style={[styles.unit, { color: GRAY_TEXT }]}>bpm</Text>
+                        </View>
+                    </View>
+                    <LineChart
+                        data={{ labels: [], datasets: [{ data: hrHistory }] }}
+                        width={screenWidth - 80}
+                        height={90}
+                        withDots={false}
+                        withInnerLines={false}
+                        withOuterLines={false}
+                        withVerticalLabels={false}
+                        withHorizontalLabels={false}
+                        chartConfig={{
+                            backgroundColor: CARD_BG,
+                            backgroundGradientFrom: CARD_BG,
+                            backgroundGradientTo: CARD_BG,
+                            color: (opacity = 1) => `rgba(233, 30, 99, ${opacity})`,
+                        }}
+                        bezier
+                        style={{ paddingRight: 0, marginTop: 10 }}
+                    />
+                </View>
+
+                {/* SpO2 Card */}
+                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
+                    <View style={styles.cardHeaderRow}>
+                        <View style={styles.cardHeaderLeft}>
+                            <View style={[styles.iconContainer, { backgroundColor: '#e0e8f4' }]}>
+                                <Ionicons name="water" size={22} color="#00C4B4" />
+                            </View>
+                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>SpO2</Text>
+                        </View>
+                        <View style={styles.valueContainer}>
+                            <Text style={[styles.cardValue, { color: '#2196f3' }]} adjustsFontSizeToFit numberOfLines={1}>
+                                {displaySpO2}
+                            </Text>
+                            <Text style={[styles.unit, { color: GRAY_TEXT }]}>%</Text>
+                        </View>
+                    </View>
+                    <LineChart
+                        data={{ labels: [], datasets: [{ data: spo2History }] }}
+                        width={screenWidth - 80}
+                        height={90}
+                        withDots={false}
+                        withInnerLines={false}
+                        withOuterLines={false}
+                        withVerticalLabels={false}
+                        withHorizontalLabels={false}
+                        chartConfig={{
+                            backgroundColor: CARD_BG,
+                            backgroundGradientFrom: CARD_BG,
+                            backgroundGradientTo: CARD_BG,
+                            color: (opacity = 1) => `rgba(33, 150, 243, ${opacity})`,
+                        }}
+                        bezier
+                        style={{ paddingRight: 0, marginTop: 10 }}
+                    />
+                </View>
+
+                {/* Temperature Card */}
+                <View style={[styles.card, { backgroundColor: CARD_BG }]}>
+                    <View style={styles.cardHeaderRow}>
+                        <View style={styles.cardHeaderLeft}>
+                            <View style={[styles.iconContainer, { backgroundColor: '#FFF3E0' }]}>
+                                <Ionicons name="thermometer" size={22} color="#FF9800" />
+                            </View>
+                            <Text style={[styles.cardTitle, { color: GRAY_TEXT }]}>Temp</Text>
+                        </View>
+                        <View style={styles.valueContainer}>
+                            <Text style={[styles.cardValue, { color: '#ff9800' }]} adjustsFontSizeToFit numberOfLines={1}>
+                                {displayTemp}
+                            </Text>
+                            <Text style={[styles.unit, { color: GRAY_TEXT }]}>°C</Text>
+                        </View>
+                    </View>
+                    <LineChart
+                        data={{ labels: [], datasets: [{ data: tempHistory }] }}
+                        width={screenWidth - 80}
+                        height={90}
+                        withDots={false}
+                        withInnerLines={false}
+                        withOuterLines={false}
+                        withVerticalLabels={false}
+                        withHorizontalLabels={false}
+                        chartConfig={{
+                            backgroundColor: CARD_BG,
+                            backgroundGradientFrom: CARD_BG,
+                            backgroundGradientTo: CARD_BG,
+                            color: (opacity = 1) => `rgba(255, 152, 0, ${opacity})`,
+                        }}
+                        bezier
+                        style={{ paddingRight: 0, marginTop: 10 }}
+                    />
+                </View>
+            </View>
 
         </ScrollView>
     )
 
 }
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    header: {
-        paddingTop: 60,
-        paddingBottom: 20,
-        paddingHorizontal: 24,
-        backgroundColor: '#F8F9FA',
-        elevation: 3,
-    },
-    titleText: {
-        fontSize: 24,
-        fontWeight: '600',
-        letterSpacing: -0.5,
-    },
-    subTitleText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        letterSpacing: -0.5,
-        marginTop: 14,
-    },
+    container: { flex: 1 },
+    header: { paddingTop: 60, paddingBottom: 20, paddingHorizontal: 24 },
+    titleText: { fontSize: 24, fontWeight: '600', letterSpacing: -0.5 },
+    subTitleText: { fontSize: 20, fontWeight: 'bold', letterSpacing: -0.5 },
     riskLevelContainer: {
         flexDirection: 'column',
         marginHorizontal: 24,
@@ -183,28 +206,11 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 2,
     },
-    riskMain: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    riskTextInfo: {
-        marginLeft: 12,
-    },
-    riskLevelValue: {
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    riskFactors: {
-        borderTopWidth: 1,
-        borderTopColor: '#F0F0F5',
-        paddingTop: 16,
-    },
-    factorBadgeRow: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
+    riskMain: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+    riskTextInfo: { marginLeft: 12 },
+    riskLevelValue: { fontSize: 20, fontWeight: 'bold' },
+    riskFactors: { borderTopWidth: 1, borderTopColor: '#F0F0F5', paddingTop: 16 },
+    factorBadgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     factorBadge: {
         backgroundColor: '#F8F9FA',
         paddingVertical: 6,
@@ -213,36 +219,35 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E2E8F0',
     },
-    factorBadgeText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
+    factorBadgeText: { fontSize: 13, fontWeight: '600' },
     triggerText: {
-        fontSize: 20,
+        fontSize: 14,
         fontWeight: 'bold',
-        color: '#FF9800',
-        marginBottom: 10,
+        color: '#7A8299',
+        marginBottom: 8,
     },
     suggestions: {
+        borderTopWidth: 1,
+        borderTopColor: '#F0F0F5',
+        paddingTop: 16,
         marginTop: 16,
     },
     suggestionTitle: {
-        fontSize: 20,
+        fontSize: 14,
         fontWeight: 'bold',
-        color: '#FF9800',
-        marginBottom: 10,
+        color: '#7A8299',
+        marginBottom: 8,
     },
     suggestionText: {
-        fontSize: 18,
-        fontWeight: '500',
+        fontSize: 13,
         color: '#1A2144',
+        lineHeight: 20,
     },
     content: {
         paddingHorizontal: 24,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        marginTop: 20,
+        paddingBottom: 40,
+        flexDirection: 'column', // Stack cards vertically to fit charts
+        gap: 16,
     },
     card: {
         borderRadius: 16,
@@ -252,17 +257,16 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.04,
         shadowRadius: 12,
         elevation: 2,
-        width: '47%',
-        marginBottom: 16,
+        width: '100%', // Full width to accommodate graphs
     },
-    cardHeader: {
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        marginBottom: 12,
-    },
-    cardContent: {
+    cardHeaderRow: {
         flexDirection: 'row',
-        gap: 12,
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    cardHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     iconContainer: {
         width: 40,
@@ -270,18 +274,18 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 8,
+        marginRight: 12,
     },
-    cardTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
+    cardTitle: { fontSize: 16, fontWeight: 'bold' },
+    valueContainer: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 4,
     },
     cardValue: {
         fontSize: 28,
         fontWeight: 'bold',
+        flexShrink: 1,
     },
-    unit: {
-        fontSize: 18,
-        fontWeight: '500',
-    },
+    unit: { fontSize: 16, fontWeight: '500' },
 });

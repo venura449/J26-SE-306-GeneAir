@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import {WatchContext} from "../WatchContext";
+import { WatchContext } from "../../context/WatchContext";
 import {
   Alert,
   Pressable,
@@ -60,42 +60,42 @@ const trendOptions: {
   color: string;
   icon: keyof typeof MaterialIcons.glyphMap;
 }[] = [
-  {
-    key: "heartRate",
-    label: "Heart rate",
-    unit: "BPM",
-    color: "#e91e63",
-    icon: "favorite",
-  },
-  {
-    key: "spo2",
-    label: "SpO2",
-    unit: "%",
-    color: "#237d78",
-    icon: "bloodtype",
-  },
-  {
-    key: "bodyTemp",
-    label: "Temperature",
-    unit: "C",
-    color: "#e68a2e",
-    icon: "thermostat",
-  },
-  {
-    key: "steps",
-    label: "Steps",
-    unit: "steps",
-    color: "#3549b7",
-    icon: "directions-walk",
-  },
-  {
-    key: "lightLux",
-    label: "Ambient light",
-    unit: "lux",
-    color: "#c49a18",
-    icon: "light-mode",
-  },
-];
+    {
+      key: "heartRate",
+      label: "Heart rate",
+      unit: "BPM",
+      color: "#e91e63",
+      icon: "favorite",
+    },
+    {
+      key: "spo2",
+      label: "SpO2",
+      unit: "%",
+      color: "#237d78",
+      icon: "bloodtype",
+    },
+    {
+      key: "bodyTemp",
+      label: "Temperature",
+      unit: "C",
+      color: "#e68a2e",
+      icon: "thermostat",
+    },
+    {
+      key: "steps",
+      label: "Steps",
+      unit: "steps",
+      color: "#3549b7",
+      icon: "directions-walk",
+    },
+    {
+      key: "lightLux",
+      label: "Ambient light",
+      unit: "lux",
+      color: "#c49a18",
+      icon: "light-mode",
+    },
+  ];
 
 const chars =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -164,16 +164,12 @@ export default function HomeScreen() {
   const [deviceOpen, setDeviceOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scannedDevices, setScannedDevices] = useState<Device[]>([]);
-  const { watchData, setWatchData } = useContext(WatchContext);
+  const {
+    watchData, setWatchData,
+    setHrHistory, setSpo2History, setTempHistory
+  } = useContext(WatchContext);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
   const [locationName, setLocationName] = useState<string>("Locating...");
-  const [hrHistory, setHrHistory] = useState<number[]>([0, 0, 0, 0, 0, 0]);
-  const [spo2History, setSpo2History] = useState<number[]>([
-    95, 95, 95, 95, 95, 95,
-  ]);
-  const [tempHistory, setTempHistory] = useState<number[]>([
-    36.5, 36.5, 36.5, 36.5, 36.5, 36.5,
-  ]);
   const [watchHistory, setWatchHistory] = useState<WatchPacket[]>([]);
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("heartRate");
   const [trendRange, setTrendRange] = useState<6 | 12 | 20>(12);
@@ -320,11 +316,11 @@ export default function HomeScreen() {
         ]);
         return (
           result["android.permission.BLUETOOTH_CONNECT"] ===
-            PermissionsAndroid.RESULTS.GRANTED &&
+          PermissionsAndroid.RESULTS.GRANTED &&
           result["android.permission.BLUETOOTH_SCAN"] ===
-            PermissionsAndroid.RESULTS.GRANTED &&
+          PermissionsAndroid.RESULTS.GRANTED &&
           result["android.permission.ACCESS_FINE_LOCATION"] ===
-            PermissionsAndroid.RESULTS.GRANTED
+          PermissionsAndroid.RESULTS.GRANTED
         );
       } else {
         const result = await PermissionsAndroid.request(
@@ -407,6 +403,17 @@ export default function HomeScreen() {
               setHrHistory((prev) => {
                 const newHistory = [...prev, data.heartRate];
                 if (newHistory.length > 15) newHistory.shift(); // Keep last 15 points
+                return newHistory;
+              });
+              setSpo2History((prev) => {
+                const newHistory = [...prev, data.spo2];
+                if (newHistory.length > 15) newHistory.shift();
+                return newHistory;
+              });
+              
+              setTempHistory((prev) => {
+                const newHistory = [...prev, data.bodyTemp];
+                if (newHistory.length > 15) newHistory.shift();
                 return newHistory;
               });
               setWatchHistory((prev) => [...prev, data].slice(-20));
@@ -604,169 +611,33 @@ export default function HomeScreen() {
                   </Text>
                 </View>
 
-                {/* Vitals Charts Container */}
+                {/* Device Info Container */}
                 <View
                   style={{
                     backgroundColor: "#f9fafc",
                     borderRadius: 16,
-                    padding: 12,
+                    padding: 16,
                     marginBottom: 16,
                   }}
                 >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "600",
-                        color: "#172752",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Heart Rate (BPM)
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 18,
-                        fontWeight: "700",
-                        color: "#e91e63",
-                      }}
-                    >
-                      {watchData?.heartRate.toFixed(1) || "--"}
-                    </Text>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#172752", marginBottom: 12 }}>
+                    Device Status
+                  </Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text style={{ color: "#73809d" }}>Battery</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <MaterialIcons name="battery-charging-full" size={16} color="#4caf50" style={{ marginRight: 4 }} />
+                      <Text style={{ color: "#4caf50", fontWeight: "600" }}>82%</Text>
+                    </View>
                   </View>
-                  <LineChart
-                    data={{ labels: [], datasets: [{ data: hrHistory }] }}
-                    width={Dimensions.get("window").width - 100}
-                    height={90}
-                    yAxisSuffix=""
-                    withDots={false}
-                    withInnerLines={false}
-                    withOuterLines={false}
-                    withVerticalLabels={false}
-                    withHorizontalLabels={false}
-                    chartConfig={{
-                      backgroundColor: "#f9fafc",
-                      backgroundGradientFrom: "#f9fafc",
-                      backgroundGradientTo: "#f9fafc",
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => `rgba(233, 30, 99, ${opacity})`,
-                      labelColor: (opacity = 1) =>
-                        `rgba(115, 128, 157, ${opacity})`,
-                      style: { borderRadius: 16 },
-                    }}
-                    bezier
-                    style={{ paddingRight: 0, marginVertical: 4 }}
-                  />
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginTop: 12,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "600",
-                        color: "#172752",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Blood Oxygen (%)
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 18,
-                        fontWeight: "700",
-                        color: "#2196f3",
-                      }}
-                    >
-                      {watchData?.spo2 || "--"}
-                    </Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text style={{ color: "#73809d" }}>Firmware</Text>
+                    <Text style={{ color: "#172752", fontWeight: "600" }}>v1.0.0</Text>
                   </View>
-                  <LineChart
-                    data={{ labels: [], datasets: [{ data: spo2History }] }}
-                    width={Dimensions.get("window").width - 100}
-                    height={90}
-                    yAxisSuffix=""
-                    withDots={false}
-                    withInnerLines={false}
-                    withOuterLines={false}
-                    withVerticalLabels={false}
-                    withHorizontalLabels={false}
-                    chartConfig={{
-                      backgroundColor: "#f9fafc",
-                      backgroundGradientFrom: "#f9fafc",
-                      backgroundGradientTo: "#f9fafc",
-                      decimalPlaces: 1,
-                      color: (opacity = 1) => `rgba(33, 150, 243, ${opacity})`,
-                      labelColor: (opacity = 1) =>
-                        `rgba(115, 128, 157, ${opacity})`,
-                      style: { borderRadius: 16 },
-                    }}
-                    bezier
-                    style={{ paddingRight: 0, marginVertical: 4 }}
-                  />
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginTop: 12,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "600",
-                        color: "#172752",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Body Temp (°C)
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 18,
-                        fontWeight: "700",
-                        color: "#ff9800",
-                      }}
-                    >
-                      {watchData?.bodyTemp.toFixed(1) || "--"}
-                    </Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={{ color: "#73809d" }}>Data Sync</Text>
+                    <Text style={{ color: "#172752", fontWeight: "600" }}>Active</Text>
                   </View>
-                  <LineChart
-                    data={{ labels: [], datasets: [{ data: tempHistory }] }}
-                    width={Dimensions.get("window").width - 100}
-                    height={90}
-                    yAxisSuffix=""
-                    withDots={false}
-                    withInnerLines={false}
-                    withOuterLines={false}
-                    withVerticalLabels={false}
-                    withHorizontalLabels={false}
-                    chartConfig={{
-                      backgroundColor: "#f9fafc",
-                      backgroundGradientFrom: "#f9fafc",
-                      backgroundGradientTo: "#f9fafc",
-                      decimalPlaces: 1,
-                      color: (opacity = 1) => `rgba(255, 152, 0, ${opacity})`,
-                      labelColor: (opacity = 1) =>
-                        `rgba(115, 128, 157, ${opacity})`,
-                      style: { borderRadius: 16 },
-                    }}
-                    bezier
-                    style={{ paddingRight: 0, marginVertical: 4 }}
-                  />
                 </View>
 
                 {/* Activity & Environment Grid */}
@@ -1241,7 +1112,7 @@ export default function HomeScreen() {
     </>
   );
 }
-function Field({ label, ...props }: { label: string; [key: string]: any }) {
+function Field({ label, ...props }: { label: string;[key: string]: any }) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>

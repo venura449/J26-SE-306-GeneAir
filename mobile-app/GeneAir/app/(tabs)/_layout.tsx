@@ -7,7 +7,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { WatchProvider } from '../WatchContext';
+import { WatchProvider } from '../../context/WatchContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();

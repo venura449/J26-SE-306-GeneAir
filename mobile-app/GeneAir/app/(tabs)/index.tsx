@@ -13,6 +13,7 @@ import {
   PermissionsAndroid,
   Platform,
   FlatList,
+  StatusBar,
   ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -22,7 +23,6 @@ import * as Location from "expo-location";
 import { LineChart, ProgressChart, BarChart } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   forgotPassword,
@@ -460,7 +460,7 @@ export default function HomeScreen() {
     return (
       <>
         <StatusBar
-          style="dark"
+          barStyle="dark-content"
           backgroundColor="#f5f7fc"
           translucent={false}
           hidden={false}
@@ -624,15 +624,15 @@ export default function HomeScreen() {
                     Device Status
                   </Text>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                    <Text style={{ color: "#73809d" , fontSize: 16 }}>Battery</Text>
+                    <Text style={{ color: "#73809d", fontSize: 16 }}>Battery</Text>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
                       <MaterialIcons name="battery-charging-full" size={20} color="#4caf50" style={{ marginRight: 4 }} />
-                      <Text style={{ color: "#4caf50", fontWeight: "600" , fontSize: 16 }}>82%</Text>
+                      <Text style={{ color: "#4caf50", fontWeight: "600", fontSize: 16 }}>82%</Text>
                     </View>
                   </View>
                   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <Text style={{ color: "#73809d" , fontSize: 16 }}>Data Sync</Text>
-                    <Text style={{ color: "#172752", fontWeight: "600" , fontSize: 16 }}>Active</Text>
+                    <Text style={{ color: "#73809d", fontSize: 16 }}>Data Sync</Text>
+                    <Text style={{ color: "#172752", fontWeight: "600", fontSize: 16 }}>Active</Text>
                   </View>
                 </View>
 
@@ -773,7 +773,7 @@ export default function HomeScreen() {
                   <ProfileField
                     label="Name"
                     value={String(draft.name || "")}
-                    onChangeText={(v) => setDraft({ ...draft, name: v })}
+                    onChangeText={(v: string) => setDraft({ ...draft, name: v })}
                   />
                   <ProfileField
                     label="Email (cannot be changed)"
@@ -784,14 +784,14 @@ export default function HomeScreen() {
                     label="Date of birth"
                     value={String(draft.dateOfBirth || "")}
                     placeholder="YYYY-MM-DD"
-                    onChangeText={(v) => setDraft({ ...draft, dateOfBirth: v })}
+                    onChangeText={(v: string) => setDraft({ ...draft, dateOfBirth: v })}
                   />
                   <Text style={styles.modalSection}>Health status</Text>
                   <ProfileField
                     label="BMI"
                     value={String(draft.bmi ?? "")}
                     keyboardType="decimal-pad"
-                    onChangeText={(v) => setDraft({ ...draft, bmi: Number(v) })}
+                    onChangeText={(v: string) => setDraft({ ...draft, bmi: Number(v) })}
                   />
                   <SelectField
                     label="Age diagnosed range"
@@ -832,7 +832,7 @@ export default function HomeScreen() {
                     label="Max PEF expected"
                     value={String(draft.static_max_pef_expected ?? "")}
                     keyboardType="numeric"
-                    onChangeText={(v) =>
+                    onChangeText={(v: string) =>
                       setDraft({ ...draft, static_max_pef_expected: Number(v) })
                     }
                   />
@@ -840,7 +840,7 @@ export default function HomeScreen() {
                     label="Pack years"
                     value={String(draft.static_pack_years ?? "")}
                     keyboardType="numeric"
-                    onChangeText={(v) =>
+                    onChangeText={(v: string) =>
                       setDraft({ ...draft, static_pack_years: Number(v) })
                     }
                   />
@@ -848,7 +848,7 @@ export default function HomeScreen() {
                     label="Best PEF"
                     value={String(draft.static_pef_best ?? "")}
                     keyboardType="numeric"
-                    onChangeText={(v) =>
+                    onChangeText={(v: string) =>
                       setDraft({ ...draft, static_pef_best: Number(v) })
                     }
                   />
@@ -988,7 +988,7 @@ export default function HomeScreen() {
   return (
     <>
       <StatusBar
-        style="light"
+        barStyle="light-content"
         backgroundColor="#253b99"
         translucent={false}
         hidden={false}
@@ -1271,7 +1271,7 @@ const styles = StyleSheet.create({
   submitText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   switchRow: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
   switchText: { color: "#73809d", fontSize: 13 },
-  link: { color: "#3549b7", fontSize: 13, fontWeight: "700" ,backgroundColor: '#d1d8ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10},
+  link: { color: "#3549b7", fontSize: 13, fontWeight: "700", backgroundColor: '#d1d8ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   dashboard: {
     flexGrow: 1,
     backgroundColor: "#f5f7fc",
@@ -1612,7 +1612,13 @@ const styles = StyleSheet.create({
   },
   scanText: { color: "#3549b7", fontSize: 14, fontWeight: "700" },
   scanner: { backgroundColor: "#10152b", flex: 1, justifyContent: "flex-end" },
-  camera: { ...StyleSheet.absoluteFillObject },
+  camera: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   scannerClose: {
     alignItems: "center",
     backgroundColor: "#3549b7",

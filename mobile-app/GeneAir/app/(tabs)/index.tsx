@@ -410,7 +410,7 @@ export default function HomeScreen() {
                 if (newHistory.length > 15) newHistory.shift();
                 return newHistory;
               });
-              
+
               setTempHistory((prev) => {
                 const newHistory = [...prev, data.bodyTemp];
                 if (newHistory.length > 15) newHistory.shift();
@@ -603,9 +603,9 @@ export default function HomeScreen() {
                     marginBottom: 16,
                   }}
                 >
-                  <MaterialIcons name="location-on" size={16} color="#73809d" />
+                  <MaterialIcons name="location-on" size={20} color="#73809d" />
                   <Text
-                    style={{ color: "#73809d", fontSize: 13, marginLeft: 4 }}
+                    style={{ color: "#73809d", fontSize: 16, fontWeight: "semibold", marginLeft: 4 }}
                   >
                     {locationName}
                   </Text>
@@ -620,23 +620,19 @@ export default function HomeScreen() {
                     marginBottom: 16,
                   }}
                 >
-                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#172752", marginBottom: 12 }}>
+                  <Text style={{ fontSize: 18, fontWeight: "600", color: "#172752", marginBottom: 12 }}>
                     Device Status
                   </Text>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                    <Text style={{ color: "#73809d" }}>Battery</Text>
+                    <Text style={{ color: "#73809d" , fontSize: 16 }}>Battery</Text>
                     <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <MaterialIcons name="battery-charging-full" size={16} color="#4caf50" style={{ marginRight: 4 }} />
-                      <Text style={{ color: "#4caf50", fontWeight: "600" }}>82%</Text>
+                      <MaterialIcons name="battery-charging-full" size={20} color="#4caf50" style={{ marginRight: 4 }} />
+                      <Text style={{ color: "#4caf50", fontWeight: "600" , fontSize: 16 }}>82%</Text>
                     </View>
                   </View>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-                    <Text style={{ color: "#73809d" }}>Firmware</Text>
-                    <Text style={{ color: "#172752", fontWeight: "600" }}>v1.0.0</Text>
-                  </View>
                   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <Text style={{ color: "#73809d" }}>Data Sync</Text>
-                    <Text style={{ color: "#172752", fontWeight: "600" }}>Active</Text>
+                    <Text style={{ color: "#73809d" , fontSize: 16 }}>Data Sync</Text>
+                    <Text style={{ color: "#172752", fontWeight: "600" , fontSize: 16 }}>Active</Text>
                   </View>
                 </View>
 
@@ -651,7 +647,7 @@ export default function HomeScreen() {
                   <View style={[styles.watchMetric, { flex: 1, padding: 8 }]}>
                     <Text
                       style={{
-                        fontSize: 12,
+                        fontSize: 18,
                         fontWeight: "600",
                         color: "#172752",
                         marginBottom: 4,
@@ -687,76 +683,48 @@ export default function HomeScreen() {
                     >
                       {watchData?.steps || 0}
                     </Text>
-                    <Text style={{ fontSize: 10, color: "#73809d" }}>
+                    <Text style={{ fontSize: 12, color: "#73809d" }}>
                       / 10,000
                     </Text>
                   </View>
 
-                  <View style={[styles.watchMetric, { flex: 1, padding: 8 }]}>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "600",
-                        color: "#172752",
-                        marginBottom: 4,
-                      }}
-                    >
-                      Motion & Light
+                  <View style={[styles.watchMetric, { flex: 1, padding: 8, justifyContent: 'space-between' }]}>
+                    <Text style={{ fontSize: 18, fontWeight: "600", color: "#172752", marginBottom: 8 }}>
+                      Status
                     </Text>
-                    <BarChart
-                      data={{
-                        labels: ["X", "Y", "Z"],
-                        datasets: [
-                          {
-                            data: [
-                              watchData?.gyroX || 0,
-                              watchData?.gyroY || 0,
-                              watchData?.gyroZ || 0,
-                            ],
-                          },
-                        ],
-                      }}
-                      width={Dimensions.get("window").width / 2 - 50}
-                      height={80}
-                      yAxisLabel=""
-                      yAxisSuffix=""
-                      withHorizontalLabels={false}
-                      withInnerLines={false}
-                      showBarTops={false}
-                      chartConfig={{
-                        backgroundColor: "#f5f7fc",
-                        backgroundGradientFrom: "#f5f7fc",
-                        backgroundGradientTo: "#f5f7fc",
-                        color: (opacity = 1) =>
-                          `rgba(156, 39, 176, ${opacity})`,
-                        labelColor: (opacity = 1) =>
-                          `rgba(115, 128, 157, ${opacity})`,
-                        barPercentage: 0.6,
-                      }}
-                      style={{ paddingRight: 0 }}
-                    />
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 4,
-                        gap: 4,
-                      }}
-                    >
-                      <MaterialIcons
-                        name="light-mode"
-                        size={14}
-                        color="#ffc107"
-                      />
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "700",
-                          color: "#ffc107",
-                        }}
-                      >
-                        {watchData?.lightLux || 0} lx
-                      </Text>
+
+                    {/* Dynamic Motion Insight */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 8, width: '100%', marginBottom: 8, borderWidth: 1, borderColor: '#e4e8f2' }}>
+                      <View style={{ backgroundColor: '#f3e5f5', padding: 6, borderRadius: 6, marginRight: 8 }}>
+                        <MaterialIcons
+                          name={(Math.abs(watchData?.gyroX || 0) + Math.abs(watchData?.gyroY || 0) + Math.abs(watchData?.gyroZ || 0)) > 50 ? "directions-run" : "weekend"}
+                          size={16}
+                          color="#9c27b0"
+                        />
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 14, color: "#73809d" }}>Activity</Text>
+                        <Text style={{ fontSize: 15, fontWeight: "bold", color: "#172752" }}>
+                          {(Math.abs(watchData?.gyroX || 0) + Math.abs(watchData?.gyroY || 0) + Math.abs(watchData?.gyroZ || 0)) > 50 ? "Active" : "Resting"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Dynamic Light Insight */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 8, width: '100%', borderWidth: 1, borderColor: '#e4e8f2' }}>
+                      <View style={{ backgroundColor: '#fff8e1', padding: 6, borderRadius: 6, marginRight: 8 }}>
+                        <MaterialIcons
+                          name={(watchData?.lightLux || 0) > 600 ? "wb-sunny" : ((watchData?.lightLux || 0) > 100 ? "lightbulb" : "nights-stay")}
+                          size={16}
+                          color="#ff9800"
+                        />
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 14, color: "#73809d" }}>Environment</Text>
+                        <Text style={{ fontSize: 15, fontWeight: "bold", color: "#172752" }}>
+                          {(watchData?.lightLux || 0) > 600 ? "Outdoors" : ((watchData?.lightLux || 0) > 100 ? "Well Lit" : "Dim")}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -1303,7 +1271,7 @@ const styles = StyleSheet.create({
   submitText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   switchRow: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
   switchText: { color: "#73809d", fontSize: 13 },
-  link: { color: "#3549b7", fontSize: 13, fontWeight: "700" },
+  link: { color: "#3549b7", fontSize: 13, fontWeight: "700" ,backgroundColor: '#d1d8ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10},
   dashboard: {
     flexGrow: 1,
     backgroundColor: "#f5f7fc",

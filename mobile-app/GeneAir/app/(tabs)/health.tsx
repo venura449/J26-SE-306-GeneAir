@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Dimensions, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useContext } from 'react';
 import { WatchContext } from '../../context/WatchContext';
@@ -15,6 +15,7 @@ export default function HealthScreen() {
     const GRAY_TEXT = '#7A8299';
 
     const screenWidth = Dimensions.get("window").width;
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
     const { watchData, hrHistory, spo2History, tempHistory } = useContext(WatchContext)
 
@@ -64,13 +65,29 @@ export default function HealthScreen() {
                             </View>
                         </View>
                     </View>
+                    {/* Suggestion Section */}
                     <View style={styles.suggestions}>
-                        <Text style={[styles.suggestionTitle]}>
-                            Suggestions
-                        </Text>
-                        <Text style={[styles.suggestionText]}>
-                            • Consider wearing a mask outdoors and using an air purifier indoors.
-                        </Text>
+                        <Pressable
+                            style={styles.suggestionHeader}
+                            onPress={() => setSuggestionsOpen(!suggestionsOpen)}
+                        >
+                            <Text style={styles.suggestionTitle}>
+                                Suggestions
+                            </Text>
+                            <Ionicons
+                                name={suggestionsOpen ? "chevron-up" : "chevron-down"}
+                                size={20}
+                                color="#7A8299"
+                            />
+                        </Pressable>
+
+                        {suggestionsOpen && (
+                            <View style={styles.suggestionContent}>
+                                <Text style={styles.suggestionText}>
+                                    • Consider wearing a mask outdoors and using an air purifier indoors.
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
             </View>
@@ -221,7 +238,7 @@ const styles = StyleSheet.create({
     },
     factorBadgeText: { fontSize: 13, fontWeight: '600' },
     triggerText: {
-        fontSize: 14,
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#7A8299',
         marginBottom: 8,
@@ -232,21 +249,28 @@ const styles = StyleSheet.create({
         paddingTop: 16,
         marginTop: 16,
     },
+    suggestionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
     suggestionTitle: {
-        fontSize: 14,
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#7A8299',
-        marginBottom: 8,
+    },
+    suggestionContent: {
+        marginTop: 12,
     },
     suggestionText: {
-        fontSize: 13,
+        fontSize: 15,
         color: '#1A2144',
         lineHeight: 20,
     },
     content: {
         paddingHorizontal: 24,
         paddingBottom: 40,
-        flexDirection: 'column', // Stack cards vertically to fit charts
+        flexDirection: 'column',
         gap: 16,
     },
     card: {
@@ -257,7 +281,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.04,
         shadowRadius: 12,
         elevation: 2,
-        width: '100%', // Full width to accommodate graphs
+        width: '100%',
     },
     cardHeaderRow: {
         flexDirection: 'row',

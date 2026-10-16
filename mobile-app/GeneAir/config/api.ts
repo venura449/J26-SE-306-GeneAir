@@ -58,7 +58,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.message || "Something went wrong.");
+  if (!response.ok) {
+    console.log("API Error Status:", response.status); // ADD THIS
+    console.log("API Error Payload:", payload); // ADD THIS
+    throw new Error(payload.message || "Something went wrong.");
+  }
   return payload as T;
 }
 
@@ -149,7 +153,7 @@ export async function getVitals() {
   if (!token) {
     throw new Error("Auth token not found");
   }
-  return request<VitalsResponse>("/vitals/me", {
+  return request<VitalsResponse>("/mobile/auth/vitals", {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });

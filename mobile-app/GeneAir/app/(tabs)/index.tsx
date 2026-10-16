@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { WatchContext } from "../../context/WatchContext";
 import {
   Alert,
   Pressable,
@@ -12,6 +13,7 @@ import {
   PermissionsAndroid,
   Platform,
   FlatList,
+  StatusBar,
   ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -21,7 +23,6 @@ import * as Location from "expo-location";
 import { LineChart, ProgressChart, BarChart } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   forgotPassword,
@@ -59,42 +60,42 @@ const trendOptions: {
   color: string;
   icon: keyof typeof MaterialIcons.glyphMap;
 }[] = [
-  {
-    key: "heartRate",
-    label: "Heart rate",
-    unit: "BPM",
-    color: "#e91e63",
-    icon: "favorite",
-  },
-  {
-    key: "spo2",
-    label: "SpO2",
-    unit: "%",
-    color: "#237d78",
-    icon: "bloodtype",
-  },
-  {
-    key: "bodyTemp",
-    label: "Temperature",
-    unit: "C",
-    color: "#e68a2e",
-    icon: "thermostat",
-  },
-  {
-    key: "steps",
-    label: "Steps",
-    unit: "steps",
-    color: "#3549b7",
-    icon: "directions-walk",
-  },
-  {
-    key: "lightLux",
-    label: "Ambient light",
-    unit: "lux",
-    color: "#c49a18",
-    icon: "light-mode",
-  },
-];
+    {
+      key: "heartRate",
+      label: "Heart rate",
+      unit: "BPM",
+      color: "#e91e63",
+      icon: "favorite",
+    },
+    {
+      key: "spo2",
+      label: "SpO2",
+      unit: "%",
+      color: "#237d78",
+      icon: "bloodtype",
+    },
+    {
+      key: "bodyTemp",
+      label: "Temperature",
+      unit: "C",
+      color: "#e68a2e",
+      icon: "thermostat",
+    },
+    {
+      key: "steps",
+      label: "Steps",
+      unit: "steps",
+      color: "#3549b7",
+      icon: "directions-walk",
+    },
+    {
+      key: "lightLux",
+      label: "Ambient light",
+      unit: "lux",
+      color: "#c49a18",
+      icon: "light-mode",
+    },
+  ];
 
 const chars =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -163,16 +164,12 @@ export default function HomeScreen() {
   const [deviceOpen, setDeviceOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scannedDevices, setScannedDevices] = useState<Device[]>([]);
-  const [watchData, setWatchData] = useState<WatchPacket | null>(null);
+  const {
+    watchData, setWatchData,
+    setHrHistory, setSpo2History, setTempHistory
+  } = useContext(WatchContext);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
   const [locationName, setLocationName] = useState<string>("Locating...");
-  const [hrHistory, setHrHistory] = useState<number[]>([0, 0, 0, 0, 0, 0]);
-  const [spo2History, setSpo2History] = useState<number[]>([
-    95, 95, 95, 95, 95, 95,
-  ]);
-  const [tempHistory, setTempHistory] = useState<number[]>([
-    36.5, 36.5, 36.5, 36.5, 36.5, 36.5,
-  ]);
   const [watchHistory, setWatchHistory] = useState<WatchPacket[]>([]);
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("heartRate");
   const [trendRange, setTrendRange] = useState<6 | 12 | 20>(12);
@@ -319,11 +316,11 @@ export default function HomeScreen() {
         ]);
         return (
           result["android.permission.BLUETOOTH_CONNECT"] ===
-            PermissionsAndroid.RESULTS.GRANTED &&
+          PermissionsAndroid.RESULTS.GRANTED &&
           result["android.permission.BLUETOOTH_SCAN"] ===
-            PermissionsAndroid.RESULTS.GRANTED &&
+          PermissionsAndroid.RESULTS.GRANTED &&
           result["android.permission.ACCESS_FINE_LOCATION"] ===
-            PermissionsAndroid.RESULTS.GRANTED
+          PermissionsAndroid.RESULTS.GRANTED
         );
       } else {
         const result = await PermissionsAndroid.request(
@@ -408,6 +405,17 @@ export default function HomeScreen() {
                 if (newHistory.length > 15) newHistory.shift(); // Keep last 15 points
                 return newHistory;
               });
+              setSpo2History((prev) => {
+                const newHistory = [...prev, data.spo2];
+                if (newHistory.length > 15) newHistory.shift();
+                return newHistory;
+              });
+
+              setTempHistory((prev) => {
+                const newHistory = [...prev, data.bodyTemp];
+                if (newHistory.length > 15) newHistory.shift();
+                return newHistory;
+              });
               setWatchHistory((prev) => [...prev, data].slice(-20));
             }
           }
@@ -452,7 +460,7 @@ export default function HomeScreen() {
     return (
       <>
         <StatusBar
-          style="dark"
+          barStyle="dark-content"
           backgroundColor="#f5f7fc"
           translucent={false}
           hidden={false}
@@ -595,177 +603,37 @@ export default function HomeScreen() {
                     marginBottom: 16,
                   }}
                 >
-                  <MaterialIcons name="location-on" size={16} color="#73809d" />
+                  <MaterialIcons name="location-on" size={20} color="#73809d" />
                   <Text
-                    style={{ color: "#73809d", fontSize: 13, marginLeft: 4 }}
+                    style={{ color: "#73809d", fontSize: 16, fontWeight: "semibold", marginLeft: 4 }}
                   >
                     {locationName}
                   </Text>
                 </View>
 
-                {/* Vitals Charts Container */}
+                {/* Device Info Container */}
                 <View
                   style={{
                     backgroundColor: "#f9fafc",
                     borderRadius: 16,
-                    padding: 12,
+                    padding: 16,
                     marginBottom: 16,
                   }}
                 >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "600",
-                        color: "#172752",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Heart Rate (BPM)
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 18,
-                        fontWeight: "700",
-                        color: "#e91e63",
-                      }}
-                    >
-                      {watchData?.heartRate.toFixed(1) || "--"}
-                    </Text>
+                  <Text style={{ fontSize: 18, fontWeight: "600", color: "#172752", marginBottom: 12 }}>
+                    Device Status
+                  </Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                    <Text style={{ color: "#73809d", fontSize: 16 }}>Battery</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <MaterialIcons name="battery-charging-full" size={20} color="#4caf50" style={{ marginRight: 4 }} />
+                      <Text style={{ color: "#4caf50", fontWeight: "600", fontSize: 16 }}>82%</Text>
+                    </View>
                   </View>
-                  <LineChart
-                    data={{ labels: [], datasets: [{ data: hrHistory }] }}
-                    width={Dimensions.get("window").width - 100}
-                    height={90}
-                    yAxisSuffix=""
-                    withDots={false}
-                    withInnerLines={false}
-                    withOuterLines={false}
-                    withVerticalLabels={false}
-                    withHorizontalLabels={false}
-                    chartConfig={{
-                      backgroundColor: "#f9fafc",
-                      backgroundGradientFrom: "#f9fafc",
-                      backgroundGradientTo: "#f9fafc",
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => `rgba(233, 30, 99, ${opacity})`,
-                      labelColor: (opacity = 1) =>
-                        `rgba(115, 128, 157, ${opacity})`,
-                      style: { borderRadius: 16 },
-                    }}
-                    bezier
-                    style={{ paddingRight: 0, marginVertical: 4 }}
-                  />
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginTop: 12,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "600",
-                        color: "#172752",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Blood Oxygen (%)
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 18,
-                        fontWeight: "700",
-                        color: "#2196f3",
-                      }}
-                    >
-                      {watchData?.spo2 || "--"}
-                    </Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={{ color: "#73809d", fontSize: 16 }}>Data Sync</Text>
+                    <Text style={{ color: "#172752", fontWeight: "600", fontSize: 16 }}>Active</Text>
                   </View>
-                  <LineChart
-                    data={{ labels: [], datasets: [{ data: spo2History }] }}
-                    width={Dimensions.get("window").width - 100}
-                    height={90}
-                    yAxisSuffix=""
-                    withDots={false}
-                    withInnerLines={false}
-                    withOuterLines={false}
-                    withVerticalLabels={false}
-                    withHorizontalLabels={false}
-                    chartConfig={{
-                      backgroundColor: "#f9fafc",
-                      backgroundGradientFrom: "#f9fafc",
-                      backgroundGradientTo: "#f9fafc",
-                      decimalPlaces: 1,
-                      color: (opacity = 1) => `rgba(33, 150, 243, ${opacity})`,
-                      labelColor: (opacity = 1) =>
-                        `rgba(115, 128, 157, ${opacity})`,
-                      style: { borderRadius: 16 },
-                    }}
-                    bezier
-                    style={{ paddingRight: 0, marginVertical: 4 }}
-                  />
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginTop: 12,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "600",
-                        color: "#172752",
-                        marginBottom: 8,
-                      }}
-                    >
-                      Body Temp (°C)
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 18,
-                        fontWeight: "700",
-                        color: "#ff9800",
-                      }}
-                    >
-                      {watchData?.bodyTemp.toFixed(1) || "--"}
-                    </Text>
-                  </View>
-                  <LineChart
-                    data={{ labels: [], datasets: [{ data: tempHistory }] }}
-                    width={Dimensions.get("window").width - 100}
-                    height={90}
-                    yAxisSuffix=""
-                    withDots={false}
-                    withInnerLines={false}
-                    withOuterLines={false}
-                    withVerticalLabels={false}
-                    withHorizontalLabels={false}
-                    chartConfig={{
-                      backgroundColor: "#f9fafc",
-                      backgroundGradientFrom: "#f9fafc",
-                      backgroundGradientTo: "#f9fafc",
-                      decimalPlaces: 1,
-                      color: (opacity = 1) => `rgba(255, 152, 0, ${opacity})`,
-                      labelColor: (opacity = 1) =>
-                        `rgba(115, 128, 157, ${opacity})`,
-                      style: { borderRadius: 16 },
-                    }}
-                    bezier
-                    style={{ paddingRight: 0, marginVertical: 4 }}
-                  />
                 </View>
 
                 {/* Activity & Environment Grid */}
@@ -779,7 +647,7 @@ export default function HomeScreen() {
                   <View style={[styles.watchMetric, { flex: 1, padding: 8 }]}>
                     <Text
                       style={{
-                        fontSize: 12,
+                        fontSize: 18,
                         fontWeight: "600",
                         color: "#172752",
                         marginBottom: 4,
@@ -815,76 +683,48 @@ export default function HomeScreen() {
                     >
                       {watchData?.steps || 0}
                     </Text>
-                    <Text style={{ fontSize: 10, color: "#73809d" }}>
+                    <Text style={{ fontSize: 12, color: "#73809d" }}>
                       / 10,000
                     </Text>
                   </View>
 
-                  <View style={[styles.watchMetric, { flex: 1, padding: 8 }]}>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: "600",
-                        color: "#172752",
-                        marginBottom: 4,
-                      }}
-                    >
-                      Motion & Light
+                  <View style={[styles.watchMetric, { flex: 1, padding: 8, justifyContent: 'space-between' }]}>
+                    <Text style={{ fontSize: 18, fontWeight: "600", color: "#172752", marginBottom: 8 }}>
+                      Status
                     </Text>
-                    <BarChart
-                      data={{
-                        labels: ["X", "Y", "Z"],
-                        datasets: [
-                          {
-                            data: [
-                              watchData?.gyroX || 0,
-                              watchData?.gyroY || 0,
-                              watchData?.gyroZ || 0,
-                            ],
-                          },
-                        ],
-                      }}
-                      width={Dimensions.get("window").width / 2 - 50}
-                      height={80}
-                      yAxisLabel=""
-                      yAxisSuffix=""
-                      withHorizontalLabels={false}
-                      withInnerLines={false}
-                      showBarTops={false}
-                      chartConfig={{
-                        backgroundColor: "#f5f7fc",
-                        backgroundGradientFrom: "#f5f7fc",
-                        backgroundGradientTo: "#f5f7fc",
-                        color: (opacity = 1) =>
-                          `rgba(156, 39, 176, ${opacity})`,
-                        labelColor: (opacity = 1) =>
-                          `rgba(115, 128, 157, ${opacity})`,
-                        barPercentage: 0.6,
-                      }}
-                      style={{ paddingRight: 0 }}
-                    />
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 4,
-                        gap: 4,
-                      }}
-                    >
-                      <MaterialIcons
-                        name="light-mode"
-                        size={14}
-                        color="#ffc107"
-                      />
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "700",
-                          color: "#ffc107",
-                        }}
-                      >
-                        {watchData?.lightLux || 0} lx
-                      </Text>
+
+                    {/* Dynamic Motion Insight */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 8, width: '100%', marginBottom: 8, borderWidth: 1, borderColor: '#e4e8f2' }}>
+                      <View style={{ backgroundColor: '#f3e5f5', padding: 6, borderRadius: 6, marginRight: 8 }}>
+                        <MaterialIcons
+                          name={(Math.abs(watchData?.gyroX || 0) + Math.abs(watchData?.gyroY || 0) + Math.abs(watchData?.gyroZ || 0)) > 50 ? "directions-run" : "weekend"}
+                          size={16}
+                          color="#9c27b0"
+                        />
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 14, color: "#73809d" }}>Activity</Text>
+                        <Text style={{ fontSize: 15, fontWeight: "bold", color: "#172752" }}>
+                          {(Math.abs(watchData?.gyroX || 0) + Math.abs(watchData?.gyroY || 0) + Math.abs(watchData?.gyroZ || 0)) > 50 ? "Active" : "Resting"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Dynamic Light Insight */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 8, width: '100%', borderWidth: 1, borderColor: '#e4e8f2' }}>
+                      <View style={{ backgroundColor: '#fff8e1', padding: 6, borderRadius: 6, marginRight: 8 }}>
+                        <MaterialIcons
+                          name={(watchData?.lightLux || 0) > 600 ? "wb-sunny" : ((watchData?.lightLux || 0) > 100 ? "lightbulb" : "nights-stay")}
+                          size={16}
+                          color="#ff9800"
+                        />
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 14, color: "#73809d" }}>Environment</Text>
+                        <Text style={{ fontSize: 15, fontWeight: "bold", color: "#172752" }}>
+                          {(watchData?.lightLux || 0) > 600 ? "Outdoors" : ((watchData?.lightLux || 0) > 100 ? "Well Lit" : "Dim")}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -933,7 +773,7 @@ export default function HomeScreen() {
                   <ProfileField
                     label="Name"
                     value={String(draft.name || "")}
-                    onChangeText={(v) => setDraft({ ...draft, name: v })}
+                    onChangeText={(v: string) => setDraft({ ...draft, name: v })}
                   />
                   <ProfileField
                     label="Email (cannot be changed)"
@@ -944,14 +784,14 @@ export default function HomeScreen() {
                     label="Date of birth"
                     value={String(draft.dateOfBirth || "")}
                     placeholder="YYYY-MM-DD"
-                    onChangeText={(v) => setDraft({ ...draft, dateOfBirth: v })}
+                    onChangeText={(v: string) => setDraft({ ...draft, dateOfBirth: v })}
                   />
                   <Text style={styles.modalSection}>Health status</Text>
                   <ProfileField
                     label="BMI"
                     value={String(draft.bmi ?? "")}
                     keyboardType="decimal-pad"
-                    onChangeText={(v) => setDraft({ ...draft, bmi: Number(v) })}
+                    onChangeText={(v: string) => setDraft({ ...draft, bmi: Number(v) })}
                   />
                   <SelectField
                     label="Age diagnosed range"
@@ -992,7 +832,7 @@ export default function HomeScreen() {
                     label="Max PEF expected"
                     value={String(draft.static_max_pef_expected ?? "")}
                     keyboardType="numeric"
-                    onChangeText={(v) =>
+                    onChangeText={(v: string) =>
                       setDraft({ ...draft, static_max_pef_expected: Number(v) })
                     }
                   />
@@ -1000,7 +840,7 @@ export default function HomeScreen() {
                     label="Pack years"
                     value={String(draft.static_pack_years ?? "")}
                     keyboardType="numeric"
-                    onChangeText={(v) =>
+                    onChangeText={(v: string) =>
                       setDraft({ ...draft, static_pack_years: Number(v) })
                     }
                   />
@@ -1008,7 +848,7 @@ export default function HomeScreen() {
                     label="Best PEF"
                     value={String(draft.static_pef_best ?? "")}
                     keyboardType="numeric"
-                    onChangeText={(v) =>
+                    onChangeText={(v: string) =>
                       setDraft({ ...draft, static_pef_best: Number(v) })
                     }
                   />
@@ -1148,7 +988,7 @@ export default function HomeScreen() {
   return (
     <>
       <StatusBar
-        style="light"
+        barStyle="light-content"
         backgroundColor="#253b99"
         translucent={false}
         hidden={false}
@@ -1240,7 +1080,7 @@ export default function HomeScreen() {
     </>
   );
 }
-function Field({ label, ...props }: { label: string; [key: string]: any }) {
+function Field({ label, ...props }: { label: string;[key: string]: any }) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
@@ -1431,7 +1271,7 @@ const styles = StyleSheet.create({
   submitText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   switchRow: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
   switchText: { color: "#73809d", fontSize: 13 },
-  link: { color: "#3549b7", fontSize: 13, fontWeight: "700" },
+  link: { color: "#3549b7", fontSize: 13, fontWeight: "700", backgroundColor: '#d1d8ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   dashboard: {
     flexGrow: 1,
     backgroundColor: "#f5f7fc",
@@ -1772,7 +1612,13 @@ const styles = StyleSheet.create({
   },
   scanText: { color: "#3549b7", fontSize: 14, fontWeight: "700" },
   scanner: { backgroundColor: "#10152b", flex: 1, justifyContent: "flex-end" },
-  camera: { ...StyleSheet.absoluteFillObject },
+  camera: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   scannerClose: {
     alignItems: "center",
     backgroundColor: "#3549b7",

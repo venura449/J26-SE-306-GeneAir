@@ -42,7 +42,7 @@ node_modules/
 jspm_packages/
 
 # Generated model artifacts
-/ai-services/models/
+/risk-service/models/
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
@@ -191,3 +191,5 @@ __pycache__/
 *$py.class
 
 .venv/
+
+rag-service/knowledge/*

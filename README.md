@@ -5,7 +5,7 @@ Project structure for the GeneAir mobile app, web app, backend, AI services, and
 AI service source is organized by responsibility:
 
 ```text
-ai-services/
+risk-service/
   app.py
   models/                 # Generated risk-model artifacts
   src/

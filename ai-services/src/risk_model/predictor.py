@@ -1,12 +1,19 @@
 from __future__ import annotations
 import math
+import warnings
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import joblib
 
 ROOT=Path(__file__).resolve().parents[2]
-BUNDLE=joblib.load(ROOT/'model'/'GeneAir_Component01_Render_Bundle.joblib')
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        'ignore',
+        message=r'.*If you are loading a serialized model.*',
+        category=UserWarning,
+    )
+    BUNDLE=joblib.load(ROOT/'models'/'geneair_risk_model_bundle.joblib')
 
 def _calibrate(raw_probability):
     calibrator = BUNDLE['calibrator']

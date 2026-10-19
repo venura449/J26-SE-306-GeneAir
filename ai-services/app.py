@@ -1,22 +1,9 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import Any, Dict, List
-from src.feature_engineering import build_stream_features
-from src.geneair.predictor import predict_from_features
+from src.risk_model.feature_engineering import build_stream_features
+from src.risk_model.predictor import predict_from_features
+from src.schemas import FeatureRequest, PredictionRequest
 
 app=FastAPI(title='GeneAir Engine',version='2.0')
-
-class PredictionRequest(BaseModel):
-    iot_history: List[Dict[str,Any]]=[]
-    iot_current: Dict[str,Any]={}
-    clinical_history: List[Dict[str,Any]]=[]
-    medication_history: List[Dict[str,Any]]=[]
-    static: Dict[str,Any]={}
-    tvl_sources: Dict[str,Dict[str,Any]]={}
-    
-class FeatureRequest(BaseModel):
-    stream_features: Dict[str,Dict[str,Any]]
-    tvl_sources: Dict[str,Dict[str,Any]]={}
 
 @app.get('/health')
 def health(): return {'status':'ok','component':'GeneAir C01','architecture':'Traditional late fusion + parallel TVL'}

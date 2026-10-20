@@ -312,7 +312,7 @@ def _evidence_matches_context(question, context, evidence):
     if not genetic_query:
         return True
     evidence_text = " ".join(item["text"].lower() for item in evidence)
-    requested = {
+    query_tokens = {
         token.lower() for token in re.findall(r"\b(?:rs\d+|[a-z0-9]+)\b", query)
     }
     context_tokens = {
@@ -321,12 +321,13 @@ def _evidence_matches_context(question, context, evidence):
         for v in (variant.gene, variant.rsid)
         if v
     }
+    target_tokens = query_tokens | context_tokens
     rsids = {
-        token for token in required if token.startswith("rs") and token[2:].isdigit()
+        token for token in target_tokens if token.startswith("rs") and token[2:].isdigit()
     }
     if rsids:
         return any(token in evidence_text for token in rsids)
-    return any(token in evidence_text for token in required if len(token) > 2)
+    return any(token in evidence_text for token in target_tokens if len(token) > 2)
 
 
 def answer_question(request):

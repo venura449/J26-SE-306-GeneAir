@@ -1,0 +1,14 @@
+feature,stream,bound_type,bound_value,citation,lower_bound,upper_bound
+iot_watch_hr,IoT,absolute,3,PLACEHOLDER - replace with smartwatch datasheet,30,220
+iot_watch_steps,IoT,relative,0.10,PLACEHOLDER - replace with wearable step-count validation study,0,
+iot_watch_intensity,IoT,absolute,0.5,PLACEHOLDER - replace with source,0,10
+iot_env_temperature,IoT,absolute,0.5,PLACEHOLDER - replace with weather API specification,,
+iot_env_humidity,IoT,absolute,3,PLACEHOLDER - replace with weather API specification,0,100
+iot_env_pm2_5,IoT,relative,0.15,PLACEHOLDER - replace with low-cost PM sensor study,0,
+iot_env_pm10,IoT,relative,0.15,PLACEHOLDER - replace with low-cost PM sensor study,0,
+iot_env_o3,IoT,relative,0.10,PLACEHOLDER - replace with air-quality API specification,0,
+iot_env_no2,IoT,relative,0.10,PLACEHOLDER - replace with air-quality API specification,0,
+clinical_pef_max,Clinical,absolute,20,PLACEHOLDER - replace with peak-flow meter accuracy standard,0,
+clinical_pef_expected_ratio,Clinical,absolute,0.03,PLACEHOLDER - replace with source,0,
+clinical_pef_best_ratio,Clinical,absolute,0.03,PLACEHOLDER - replace with source,0,
+med_relief_inhaler,Medication,absolute,0.05,PLACEHOLDER - replace with source,0,1

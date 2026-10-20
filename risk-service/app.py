@@ -8,6 +8,7 @@ app = FastAPI(title="GeneAir Engine", version="2.0")
 
 @app.get("/health")
 def health():
+    """Return a small status response so callers can check the service."""
     return {
         "status": "ok",
         "component": "GeneAir C01",
@@ -17,6 +18,7 @@ def health():
 
 @app.post("/predict")
 def predict(req: PredictionRequest):
+    """Build model features from patient history and return a risk prediction."""
     try:
         return predict_from_features(
             build_stream_features(req.model_dump()), req.tvl_sources
@@ -27,6 +29,7 @@ def predict(req: PredictionRequest):
 
 @app.post("/predict-features")
 def predict_features(req: FeatureRequest):
+    """Predict risk when the caller has already prepared the feature streams."""
     try:
         return predict_from_features(req.stream_features, req.tvl_sources)
     except Exception as e:

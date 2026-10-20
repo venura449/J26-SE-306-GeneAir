@@ -257,6 +257,9 @@ def _generate(question, context, evidence, safety):
             "Separate susceptibility research from actionable prescribing guidance.",
             "Say evidence is insufficient when unsupported.",
             "Do not diagnose or prescribe.",
+            "Return only the concise final answer.",
+            "Do not show analysis, reasoning, planning, or a thinking process.",
+            "Start directly with the answer and do not use phrases such as 'Here's a thinking process'.",
         ],
     }
     body = json.dumps(
@@ -264,7 +267,7 @@ def _generate(question, context, evidence, safety):
             "model": LLAMA_MODEL,
             "messages": [{"role": "user", "content": json.dumps(prompt)}],
             "temperature": 0.1,
-            "max_tokens": 900,
+            "max_tokens": 1400,
         }
     ).encode()
     request = Request(
@@ -282,21 +285,26 @@ def _generate(question, context, evidence, safety):
     if not isinstance(answer, str):
         answer = str(answer)
 
-    # Only remove reasoning when Gemma provides a separate final channel.
+    # Gemma may emit either the normal channel marker or a malformed
+    # ``<channel|>`` marker. Keep only the answer after that marker.
     original = answer.strip()
-    channel_pattern = r"<\|channel(?:\|)?\s*>"
-    final_match = re.search(channel_pattern + r"\s*final\b", original, flags=re.I)
-    if final_match:
-        answer = original[final_match.end() :]
+    malformed_final = re.search(r"<\s*channel\s*\|\s*>", original, flags=re.I)
+    if malformed_final:
+        answer = original[malformed_final.end():]
     else:
-        answer = re.sub(
-            channel_pattern + r"\s*(?:thought|analysis)\b\s*",
-            "",
-            original,
-            count=1,
-            flags=re.I,
-        )
-        answer = re.sub(r"<\|(?:end|eot|eom)\|>", "", answer, flags=re.I)
+        channel_pattern = r"<\|channel(?:\|)?\s*>"
+        final_match = re.search(channel_pattern + r"\s*final\b", original, flags=re.I)
+        if final_match:
+            answer = original[final_match.end() :]
+        else:
+            answer = re.sub(
+                channel_pattern + r"\s*(?:thought|analysis)\b\s*",
+                "",
+                original,
+                count=1,
+                flags=re.I,
+            )
+            answer = re.sub(r"<\|(?:end|eot|eom)\|>", "", answer, flags=re.I)
 
     answer = answer.strip()
     if not answer:

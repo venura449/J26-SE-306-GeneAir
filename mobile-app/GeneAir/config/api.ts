@@ -32,6 +32,11 @@ export type User = {
 };
 
 type AuthResponse = { token: string; user: User };
+export type VitalsResponse = {
+  heartRate: number | string;
+  spo2: number | string;
+  temp: number | string;
+};
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response;
@@ -53,7 +58,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.message || "Something went wrong.");
+  if (!response.ok) {
+    console.log("API Error Status:", response.status); // ADD THIS
+    console.log("API Error Payload:", payload); // ADD THIS
+    throw new Error(payload.message || "Something went wrong.");
+  }
   return payload as T;
 }
 
@@ -136,4 +145,16 @@ export async function syncWatchData(data: any) {
   } catch (e) {
     console.log("Watch sync error", e);
   }
+}
+
+//vitals fetch for health screen
+export async function getVitals() {
+  const token = await SecureStore.getItemAsync(tokenKey);
+  if (!token) {
+    throw new Error("Auth token not found");
+  }
+  return request<VitalsResponse>("/mobile/auth/vitals", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }

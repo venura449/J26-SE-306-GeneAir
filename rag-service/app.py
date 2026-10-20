@@ -4,9 +4,15 @@ from src.rag_service import answer_question
 
 app = FastAPI(title="GeneAir Context-Aware RAG", version="1.0")
 
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "component": "GeneAir Context-Aware RAG", "architecture": "hybrid retrieval + corrective retrieval + safety routing"}
+    return {
+        "status": "ok",
+        "component": "GeneAir Context-Aware RAG",
+        "architecture": "hybrid retrieval + corrective retrieval + safety routing",
+    }
+
 
 @app.post("/ask")
 def ask(request: AskRequest):

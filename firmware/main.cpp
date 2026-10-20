@@ -6,7 +6,7 @@
 #include <time.h>
 #include "SensorQMI8658.hpp"
 
-// Ui headers
+// UI headers
 #include "ui/ui.h"
 #include "ui/screens.h"
 
@@ -15,6 +15,12 @@
 #include "model.h"
 #include "weights.h"
 #include "filters.h"
+
+// BLE headers
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 
 #define I2C_SDA 6
 #define I2C_SCL 7
@@ -32,9 +38,30 @@ TFT_eSPI tft = TFT_eSPI(screenWidth, screenHeight);
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[screenWidth * screenHeight / 10];
 
+// ----------------- BLE GLOBALS -----------------
+BLEServer* pServer = NULL;
+BLECharacteristic* pCharacteristic = NULL; 
+bool deviceConnected = false;
+bool oldDeviceConnected = false;
+uint8_t sequenceNumber = 0;
+
+#define SERVICE_UUID        "12345678-1234-1234-1234-123456789000"
+#define CHAR_UUID           "12345678-1234-1234-1234-123456789001"
+
+class MyServerCallbacks: public BLEServerCallbacks {
+    void onConnect(BLEServer* pServer) {
+      deviceConnected = true;
+      Serial.println("BLE Device connected.");
+    }
+    void onDisconnect(BLEServer* pServer) {
+      deviceConnected = false;
+      Serial.println("BLE Device disconnected.");
+    }
+};
+// -----------------------------------------------
+
 void display_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
 {
-
     uint32_t w = (area->x2 - area->x1 + 1);
     uint32_t h = (area->y2 - area->y1 + 1);
 
@@ -74,7 +101,6 @@ void touch_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_REL;
 }
 
-// ui navigation methods
 void navigate_to_health(lv_event_t *e)
 {
     if (objects.health != NULL)
@@ -82,6 +108,7 @@ void navigate_to_health(lv_event_t *e)
         lv_scr_load_anim(objects.health, LV_SCR_LOAD_ANIM_NONE, 0, 0, false);
     }
 }
+
 void navigate_to_main(lv_event_t *e)
 {
     if (objects.main != NULL)
@@ -90,13 +117,11 @@ void navigate_to_main(lv_event_t *e)
     }
 }
 
-// median and ema filters for sensors
+// Median and EMA filters for sensors
 MedianFilter hr_median;
 EMAFilter hr_ema(FILTER_FAST);
-
 MedianFilter spo2_median;
 EMAFilter spo2_ema(FILTER_FAST);
-
 EMAFilter temp_ema(FILTER_MEDIUM);
 
 void setup()
@@ -110,15 +135,15 @@ void setup()
         delay(10);
     }
 
-    // turn on the backlight
+    // Turn on the backlight
     pinMode(25, OUTPUT);
     digitalWrite(25, HIGH);
 
-    // initialize the display
+    // Initialize the display
     tft.begin();
     tft.setRotation(0);
 
-    // reset touch controller in wire1
+    // Reset touch controller
     pinMode(TP_RST, OUTPUT);
     digitalWrite(TP_RST, LOW);
     delay(20);
@@ -129,7 +154,7 @@ void setup()
     Wire1.setSCL(I2C_SCL);
     Wire1.begin();
 
-    // lvgl initialization
+    // LVGL initialization
     lv_init();
     lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * screenHeight / 10);
 
@@ -141,7 +166,7 @@ void setup()
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);
 
-    // touch controller initialization
+    // Touch controller initialization
     static lv_indev_drv_t indev_drv;
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
@@ -169,10 +194,25 @@ void setup()
     {
         lv_obj_add_event_cb(objects.backward, navigate_to_main, LV_EVENT_CLICKED, NULL);
     }
-}
 
-float simulated_hr = 50.0f;
-float simulated_spo2 = 98.0f;
+    // ----------------- BLE SETUP -----------------
+    BLEDevice::init("GeneAir_Watch");
+    pServer = BLEDevice::createServer();
+    pServer->setCallbacks(new MyServerCallbacks());
+
+    BLEService *pService = pServer->createService(SERVICE_UUID);
+    pCharacteristic = pService->createCharacteristic(CHAR_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+    pCharacteristic->addDescriptor(new BLE2902());
+
+    pService->start();
+    BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(SERVICE_UUID);
+    pAdvertising->setScanResponse(false);
+    pAdvertising->setMinPreferred(0x0); 
+    BLEDevice::startAdvertising();
+    Serial.println("BLE Started. Waiting for connections...");
+    // ---------------------------------------------
+}
 
 void loop()
 {
@@ -182,6 +222,7 @@ void loop()
     uint32_t current_time = millis();
     uint32_t elapsed_time = current_time - last_tick;
 
+    // Handle LVGL UI ticks
     if (elapsed_time >= 5)
     {
         lv_tick_inc(elapsed_time);
@@ -189,6 +230,7 @@ void loop()
         lv_timer_handler();
     }
 
+    // Handle Clock Update
     static uint32_t last_clock_update = 0;
     if (millis() - last_clock_update > 1000)
     {
@@ -213,6 +255,8 @@ void loop()
         if (objects.year != NULL)
             lv_label_set_text_fmt(objects.year, "%02d", timeinfo->tm_year % 100);
     }
+    
+    // Handle Vitals Polling, LSTM, and BLE Broadcasting
     static uint32_t last_vitals_poll = 0;
     static int seconds_passed = 0;
 
@@ -220,7 +264,7 @@ void loop()
     {
         last_vitals_poll = millis();
 
-        // 1. Generate Simulated Data (Fixed double declaration)
+        // 1. Generate Data
         float raw_hr = 85.0f + ((random(0, 10)) / 10.0f);
         float raw_spo2 = 98.0f + ((random(-2, 3)) / 10.0f);
         float raw_temp = 37.0f + ((random(-1, 2)) / 10.0f);
@@ -233,7 +277,35 @@ void loop()
         append_sensor_reading(clean_hr, clean_spo2, clean_temp);
         seconds_passed++;
 
-        // 3. Run LSTM Inference
+        // 3. Broadcast to Phone via BLE (if connected)
+        if (deviceConnected) {
+            uint16_t ble_hr = (uint16_t)(clean_hr * 10);
+            uint32_t ble_steps = 5432; // Static for now, can be linked to QMI8658 later
+            uint16_t ble_lux = 350;
+            uint8_t ble_spo2 = (uint8_t)clean_spo2;
+            int16_t ble_temp = (int16_t)(clean_temp * 100);
+
+            uint8_t payload[19] = {0};
+            payload[0] = 1;                            // Version
+            payload[1] = sequenceNumber++;             // Sequence
+            payload[2] = ble_hr & 0xFF;                // HR
+            payload[3] = (ble_hr >> 8) & 0xFF;
+            payload[4] = ble_steps & 0xFF;             // Steps
+            payload[5] = (ble_steps >> 8) & 0xFF;
+            payload[6] = (ble_steps >> 16) & 0xFF;
+            payload[7] = (ble_steps >> 24) & 0xFF;
+            payload[8] = ble_lux & 0xFF;               // Lux
+            payload[9] = (ble_lux >> 8) & 0xFF;
+            // Bytes 10-15 (Gyro) remain 0
+            payload[16] = ble_spo2;                    // SpO2
+            payload[17] = ble_temp & 0xFF;             // Temp
+            payload[18] = (ble_temp >> 8) & 0xFF;
+
+            pCharacteristic->setValue(payload, sizeof(payload));
+            pCharacteristic->notify();
+        }
+
+        // 4. Run LSTM Inference & Update Watch UI
         if (is_window_full())
         {
             TooN::Matrix<60, 3> norm_window = get_normalized_window();
@@ -243,31 +315,10 @@ void loop()
             float spo2_rate = (pred_norm[1] * y_std_data[1]) + y_mean_data[1];
             float temp_rate = (pred_norm[2] * y_std_data[2]) + y_mean_data[2];
 
-            const char *hr_dir = (hr_rate > 0.15f) ? "upward" : (hr_rate < -0.15f) ? "downward"
-                                                                                   : "stable";
-            const char *spo2_dir = (spo2_rate > 0.02f) ? "upward" : (spo2_rate < -0.02f) ? "downward"
-                                                                                         : "stable";
-            const char *temp_dir = (temp_rate > 0.01f) ? "upward" : (temp_rate < -0.01f) ? "downward"
-                                                                                         : "stable";
+            const char *hr_dir = (hr_rate > 0.15f) ? "upward" : (hr_rate < -0.15f) ? "downward" : "stable";
+            const char *spo2_dir = (spo2_rate > 0.02f) ? "upward" : (spo2_rate < -0.02f) ? "downward" : "stable";
+            const char *temp_dir = (temp_rate > 0.01f) ? "upward" : (temp_rate < -0.01f) ? "downward" : "stable";
 
-            // Keep your Serial prints for debugging
-            Serial.print("{ \"hr\": \"");
-            Serial.print(hr_dir);
-            Serial.print("\", \"hr_rate\": ");
-            Serial.print(hr_rate, 3);
-            Serial.print(", \"hr_raw\": ");
-            Serial.print(raw_hr, 3);
-            Serial.print(", \"spo2\": \"");
-            Serial.print(spo2_dir);
-            Serial.print("\", \"spo2_rate\": ");
-            Serial.print(spo2_rate, 3);
-            Serial.print(", \"spo2_raw\": ");
-            Serial.print(raw_spo2, 3);
-            Serial.print("\", \"temp\": \"");
-            Serial.print(temp_dir);
-            Serial.println("\" }");
-
-            // 4. Update the LVGL Watch Face UI
             if (objects.heart_rate != NULL)
                 lv_label_set_text_fmt(objects.heart_rate, "%.0f %s", clean_hr, hr_dir);
             if (objects.spo2_value != NULL)
@@ -277,11 +328,20 @@ void loop()
         }
         else
         {
-            Serial.printf("Buffering... %d/60\n", seconds_passed);
-
-            // Show buffering state on the watch face
             if (objects.heart_rate != NULL)
                 lv_label_set_text(objects.heart_rate, "Buffering");
         }
+    }
+
+    // ----------------- BLE RECONNECTION LOGIC -----------------
+    if (!deviceConnected && oldDeviceConnected) {
+        delay(50); // Kept very brief to avoid freezing UI
+        pServer->startAdvertising();
+        Serial.println("Restarting advertising...");
+        oldDeviceConnected = deviceConnected;
+    }
+  
+    if (deviceConnected && !oldDeviceConnected) {
+        oldDeviceConnected = deviceConnected;
     }
 }

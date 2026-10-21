@@ -57,8 +57,16 @@ async function register({ name, email, password }) {
       { status: 409 },
     );
   }
-  logger.info(`New user record created in database: ${user.id}`);
-  return createSession(user);
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const newUser = await User.create({
+    name,
+    email: normalizedEmail,
+    passwordHash,
+  });
+  logger.info(`New user record created in database: ${newUser.id}`);
+  return createSession(newUser);
 }
 
 async function login(email, password) {

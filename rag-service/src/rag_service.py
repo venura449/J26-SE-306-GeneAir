@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
 import re
 from urllib.request import Request, urlopen
 
@@ -276,40 +277,50 @@ def _generate(question, context, evidence, safety):
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urlopen(request, timeout=90) as response:
-        payload = json.loads(response.read().decode())
+    try:
+        with urlopen(request, timeout=8) as response:
+            payload = json.loads(response.read().decode())
 
-    choice = (payload.get("choices") or [{}])[0]
-    message = choice.get("message") or {}
-    answer = message.get("content") or choice.get("text") or ""
-    if not isinstance(answer, str):
-        answer = str(answer)
+        choice = (payload.get("choices") or [{}])[0]
+        message = choice.get("message") or {}
+        answer = message.get("content") or choice.get("text") or ""
+        if not isinstance(answer, str):
+            answer = str(answer)
 
-    # Gemma may emit either the normal channel marker or a malformed
-    # ``<channel|>`` marker. Keep only the answer after that marker.
-    original = answer.strip()
-    malformed_final = re.search(r"<\s*channel\s*\|\s*>", original, flags=re.I)
-    if malformed_final:
-        answer = original[malformed_final.end():]
-    else:
-        channel_pattern = r"<\|channel(?:\|)?\s*>"
-        final_match = re.search(channel_pattern + r"\s*final\b", original, flags=re.I)
-        if final_match:
-            answer = original[final_match.end() :]
+        # Gemma may emit either the normal channel marker or a malformed
+        # ``<channel|>`` marker. Keep only the answer after that marker.
+        original = answer.strip()
+        malformed_final = re.search(r"<\s*channel\s*\|\s*>", original, flags=re.I)
+        if malformed_final:
+            answer = original[malformed_final.end():]
         else:
-            answer = re.sub(
-                channel_pattern + r"\s*(?:thought|analysis)\b\s*",
-                "",
-                original,
-                count=1,
-                flags=re.I,
-            )
-            answer = re.sub(r"<\|(?:end|eot|eom)\|>", "", answer, flags=re.I)
+            channel_pattern = r"<\|channel(?:\|)?\s*>"
+            final_match = re.search(channel_pattern + r"\s*final\b", original, flags=re.I)
+            if final_match:
+                answer = original[final_match.end() :]
+            else:
+                answer = re.sub(
+                    channel_pattern + r"\s*(?:thought|analysis)\b\s*",
+                    "",
+                    original,
+                    count=1,
+                    flags=re.I,
+                )
+                answer = re.sub(r"<\|(?:end|eot|eom)\|>", "", answer, flags=re.I)
 
-    answer = answer.strip()
-    if not answer:
-        return "The model did not return a final answer. Please retry the question."
-    return answer
+        answer = answer.strip()
+        if not answer:
+            return "The model did not return a final answer. Please retry the question."
+        return answer
+    except Exception as exc:
+        evidence_snippets = [
+            f"- [{e.get('chunk_id')}] {e.get('text', '')[:250]}..."
+            for e in evidence[:3]
+        ]
+        return (
+            f"Clinical evidence retrieved from knowledge base (local LLM service at {LLAMA_URL} is offline: {exc}):\n\n"
+            + "\n".join(evidence_snippets)
+        )
 
 
 def _evidence_matches_context(question, context, evidence):

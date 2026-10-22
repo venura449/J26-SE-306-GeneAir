@@ -26,7 +26,7 @@ IOT_SENSOR_MAP = {
 
 
 def trend_sign_to_num(v):
-    """Convert text or numeric trend values to -1, 0, or 1."""
+    # Convert text or numeric trend values to -1, 0, or 1.
     if isinstance(v, str):
         z = v.strip().lower()
         if z in {"up", "rising", "increase", "increasing"}:
@@ -42,7 +42,7 @@ def trend_sign_to_num(v):
 
 
 def _num(v):
-    """Convert a measurement to a number, including pollen labels."""
+    # Convert a measurement to a number, including pollen labels.
     if isinstance(v, str) and v.strip().lower() in POLLEN:
         return POLLEN[v.strip().lower()]
     try:
@@ -52,7 +52,7 @@ def _num(v):
 
 
 def summarize(values, days=None, explicit_trend=None):
-    """Calculate the latest value, average, change, slope, and trend."""
+    # Calculate the latest value, average, change, slope, and trend.
     y = np.asarray([_num(v) for v in values], float)
     m = np.isfinite(y)
     y = y[m]
@@ -90,7 +90,7 @@ def summarize(values, days=None, explicit_trend=None):
 
 
 def build_iot_features(iot_history, iot_current=None):
-    """Summarize wearable and environmental sensor readings for the model."""
+    # Summarize wearable and environmental sensor readings for the model.
     iot_history = iot_history or []
     iot_current = iot_current or {}
     days = [r.get("day", i) for i, r in enumerate(iot_history)]
@@ -111,7 +111,7 @@ def build_iot_features(iot_history, iot_current=None):
 
 
 def build_dynamic_features(history, prefix_map):
-    """Summarize a history list and apply model feature names to each field."""
+    # Summarize a history list and apply model feature names to each field.
     history = history or []
     days = [r.get("day", i) for i, r in enumerate(history)]
     out = {}
@@ -145,7 +145,7 @@ MEDICATION_MAP = {
 
 
 def build_stream_features(payload):
-    """Convert the patient payload into the four feature streams used by prediction."""
+    # Convert the patient payload into the four feature streams used by prediction.
     iot = build_iot_features(
         payload.get("iot_history", []), payload.get("iot_current", {})
     )

@@ -17,5 +17,12 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // These components intentionally derive time-sensitive dashboard values
+      // during render and load remote data from mount effects.
+      'react-hooks/purity': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

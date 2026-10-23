@@ -9,6 +9,8 @@ const riskRoutes = require("./routes/riskRoutes");
 const app = express();
 const port = process.env.PORT || 4000;
 const logger = require("./utils/logger");
+const User = require("./models/User");
+const usernameBloomFilter = require("./services/usernameBloomFilter");
 
 app.use(cors());
 app.use(express.json());
@@ -21,6 +23,7 @@ async function start() {
   if (!process.env.MONGODB_URI || !process.env.JWT_SECRET)
     logger.error("MONGODB_URI and JWT_SECRET are required");
   await mongoose.connect(process.env.MONGODB_URI);
+  await usernameBloomFilter.initialize(User);
   app.listen(port, () => logger.info(`GeneAir API listening on port ${port}`));
 }
 if (require.main === module)

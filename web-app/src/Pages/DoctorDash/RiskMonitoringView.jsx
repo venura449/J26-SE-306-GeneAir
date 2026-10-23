@@ -45,7 +45,7 @@ const DRIVER_POOL = [
 ];
 
 export function getRiskForPatient(patient) {
-  const rand = seededRandom(String(patient._id || patient.email || patient.name));
+  const rand = seededRandom(String(patient._id || patient.email || patient.username));
   const score = Math.round(rand() * 100);
   const streams = ["IoT", "Clinical", "Medication", "Static"].map((name) => ({
     name,
@@ -161,7 +161,7 @@ function RiskMonitoringView({ patients = [], riskData = {}, onRiskUpdate }) {
   );
 
   const visibleRows = useMemo(() => rows.filter((row) => {
-    const matchesName = row.patient.name?.toLowerCase().includes(search.trim().toLowerCase());
+    const matchesName = row.patient.username?.toLowerCase().includes(search.trim().toLowerCase());
     const matchesRisk = riskFilter === "all" || (riskFilter === "none" ? row.level == null : row.level === riskFilter);
     return matchesName && matchesRisk;
   }), [rows, search, riskFilter]);
@@ -193,7 +193,7 @@ function RiskMonitoringView({ patients = [], riskData = {}, onRiskUpdate }) {
         <div className="risk-list">
           {!loadingScores && visibleRows.length === 0 && <p className="add-patient-empty">{rows.length === 0 ? "No patients have been added yet." : "No patients match your search or filter."}</p>}
 
-          {loadingScores && patients.filter((patient) => patient.name?.toLowerCase().includes(search.trim().toLowerCase())).map((patient, index) => <motion.div key={patient._id} className="risk-row risk-row-loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.04 }}><div className="patient-avatar risk-loading-pulse" /><div className="risk-row-patient"><strong>{patient.name}</strong><span>Loading saved risk score…</span></div><span className="risk-loading-spinner"><RefreshCw size={15} /></span></motion.div>)}
+          {loadingScores && patients.filter((patient) => patient.username?.toLowerCase().includes(search.trim().toLowerCase())).map((patient, index) => <motion.div key={patient._id} className="risk-row risk-row-loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.04 }}><div className="patient-avatar risk-loading-pulse" /><div className="risk-row-patient"><strong>{patient.username}</strong><span>Loading saved risk score…</span></div><span className="risk-loading-spinner"><RefreshCw size={15} /></span></motion.div>)}
           {!loadingScores && visibleRows.map((row, index) => (
             <motion.div
               key={row.patient._id}
@@ -213,7 +213,7 @@ function RiskMonitoringView({ patients = [], riskData = {}, onRiskUpdate }) {
               whileHover={{ x: 3 }}
             >
               <div className="patient-avatar">
-                {(row.patient.name || "Patient")
+                {(row.patient.username || "Patient")
                   .split(" ")
                   .filter(Boolean)
                   .slice(0, 2)
@@ -222,7 +222,7 @@ function RiskMonitoringView({ patients = [], riskData = {}, onRiskUpdate }) {
               </div>
 
               <div className="risk-row-patient">
-                <strong>{row.patient.name}</strong>
+                <strong>{row.patient.username}</strong>
                 <span>{row.patient.email}</span>
               </div>
 
@@ -244,7 +244,7 @@ function RiskMonitoringView({ patients = [], riskData = {}, onRiskUpdate }) {
           <section className="doctor-card risk-explain-modal" onClick={(e) => e.stopPropagation()}>
             <div className="doctor-card-header">
               <div>
-                <h2>{selectedRow.patient.name}</h2>
+                <h2>{selectedRow.patient.username}</h2>
                 <p>{selectedRow.patient.email}</p>
               </div>
               <button className="profile-close-button" type="button" aria-label="Close explanation" onClick={() => setSelected(null)}>
@@ -302,7 +302,7 @@ function RiskMonitoringView({ patients = [], riskData = {}, onRiskUpdate }) {
         <div className="profile-overlay risk-evaluation-overlay" onClick={() => !evaluation.loading && setEvaluation(null)}>
           <section className="doctor-card risk-evaluation-modal" onClick={(event) => event.stopPropagation()}>
             <div className="doctor-card-header">
-              <div><p className="eyebrow">GENEAIR AI MODEL</p><h2>Risk evaluation</h2><p>{evaluation.patient.name}</p></div>
+                <div><p className="eyebrow">GENEAIR AI MODEL</p><h2>Risk evaluation</h2><p>{evaluation.patient.username}</p></div>
               {!evaluation.loading && <button className="profile-close-button" type="button" onClick={() => setEvaluation(null)} aria-label="Close evaluation"><X size={19} /></button>}
             </div>
             {evaluation.loading ? <div className="risk-evaluation-loading"><RefreshCw className="risk-spin" size={30} /><h3>Evaluating patient data…</h3><p>Combining static, clinical, medication, wearable, and TVL validity signals.</p></div> : (
@@ -330,7 +330,7 @@ function getAlertsLast24h(patients, riskData, now) {
     if (getRiskLevel(risk.score) !== "high") return [];
 
     // Real alert time if the backend provides it, otherwise a simulated one.
-    const seed = String(patient._id || patient.email || patient.name) + ":alert";
+    const seed = String(patient._id || patient.email || patient.username) + ":alert";
     const at = patient.lastHighRiskAlertAt
       ? new Date(patient.lastHighRiskAlertAt).getTime()
       : now - seededRandom(seed)() * ALERT_WINDOW_HOURS * HOUR_MS;

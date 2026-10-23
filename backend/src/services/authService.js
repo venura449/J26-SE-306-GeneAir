@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const User = require("../models/User");
 const Session = require("../models/Session");
 const logger = require("../utils/logger");
+const usernameBloomFilter = require("./usernameBloomFilter");
 
 const jwtSecret = process.env.JWT_SECRET;
 const sessionDurationMs = 7 * 24 * 60 * 60 * 1000;
@@ -11,7 +12,7 @@ const sessionDurationMs = 7 * 24 * 60 * 60 * 1000;
 function publicUser(user) {
   return {
     id: user.id,
-    name: user.name,
+    username: user.username,
     email: user.email,
     countryCode: user.countryCode || "+1",
     phone: user.phone || "",
@@ -38,7 +39,7 @@ async function createSession(user) {
   logger.info(`Session saved to database for user: ${user.id}`);
   return {
     token: jwt.sign(
-      { sub: user.id, email: user.email, name: user.name, jti: tokenId },
+      { sub: user.id, email: user.email, username: user.username, jti: tokenId },
       jwtSecret,
       { expiresIn: "7d" },
     ),
@@ -46,8 +47,12 @@ async function createSession(user) {
   };
 }
 
-async function register({ name, email, password }) {
+async function register({ username, email, password }) {
+  const normalizedUsername = username.toLowerCase().trim();
   const normalizedEmail = email.toLowerCase().trim();
+  if (usernameBloomFilter.mightContain(normalizedUsername) && await User.exists({ username: normalizedUsername })) {
+    throw Object.assign(new Error("That username is already taken."), { status: 409 });
+  }
   if (await User.exists({ email: normalizedEmail })) {
     logger.warn(
       `Registration blocked: Email already exists in database (${normalizedEmail})`,
@@ -57,16 +62,11 @@ async function register({ name, email, password }) {
       { status: 409 },
     );
   }
-
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  const newUser = await User.create({
-    name,
-    email: normalizedEmail,
-    passwordHash,
-  });
-  logger.info(`New user record created in database: ${newUser.id}`);
-  return createSession(newUser);
+  const passwordHash = await bcrypt.hash(password, 12);
+  const user = await User.create({ username: normalizedUsername, email: normalizedEmail, passwordHash });
+  usernameBloomFilter.add(normalizedUsername);
+  logger.info(`New user record created in database: ${user.id}`);
+  return createSession(user);
 }
 
 async function login(email, password) {

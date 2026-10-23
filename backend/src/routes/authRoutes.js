@@ -2,9 +2,17 @@ const express = require('express');
 const controller = require('../controllers/authController');
 const authenticate = require('../middleware/authenticate');
 const multer = require('multer');
+const { rateLimit } = require('express-rate-limit');
 const path = require('path');
 const uploadDirectory = path.resolve(__dirname, '../../uploads');
 const router = express.Router();
+const usernameAvailabilityLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 30,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { message: 'Too many username availability requests. Try again shortly.' },
+});
 const storage = multer.diskStorage({
     destination: uploadDirectory,
     filename: (_request, file, callback) => callback(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname).toLowerCase()}`),
@@ -15,6 +23,7 @@ const upload = multer({
     fileFilter: (_request, file, callback) => callback(null, /^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)),
 });
 router.post('/register', controller.register);
+router.get('/username-availability/:username', usernameAvailabilityLimiter, controller.usernameAvailability);
 router.post('/login', controller.login);
 router.post('/forgot-password', controller.forgotPassword);
 router.post('/logout', authenticate, controller.logout);

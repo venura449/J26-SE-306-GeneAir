@@ -1,0 +1,32 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /web-app
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /mobile-app/GeneAir
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: pip
+    directory: /risk-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: pip
+    directory: /rag-service
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

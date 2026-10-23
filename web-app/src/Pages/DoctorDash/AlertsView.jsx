@@ -21,7 +21,7 @@ const ALERT_TYPES = [
 ];
 
 function patientKey(patient) {
-  return String(patient._id || patient.email || patient.name);
+  return String(patient._id || patient.email || patient.username);
 }
 
 // Uses patient.alerts from the backend if present, otherwise simulates alerts.
@@ -176,10 +176,10 @@ function AlertsView({ patients = [] }) {
             >
               <button className="alerts-group-header" type="button" aria-expanded={!isCollapsed} onClick={() => toggleGroup(group.patient._id)}>
                 <div className="patient-avatar">
-                  {(group.patient.name || "Patient").split(" ").filter(Boolean).slice(0, 2).map((n) => n[0]).join("")}
+                  {(group.patient.username || "Patient").split(" ").filter(Boolean).slice(0, 2).map((n) => n[0]).join("")}
                 </div>
                 <div className="alerts-group-patient">
-                  <strong>{group.patient.name}</strong>
+                  <strong>{group.patient.username}</strong>
                   <span>{group.patient.email}</span>
                 </div>
                 <span className="alerts-group-count">

@@ -101,7 +101,7 @@ function DoctorDashboard() {
   const [profile, setProfile] = useState(() => {
     try {
       return {
-        name: "Dr. Anderson",
+        username: "Dr. Anderson",
         email: "",
         countryCode: "+1",
         phone: "",
@@ -113,7 +113,7 @@ function DoctorDashboard() {
       };
     } catch {
       return {
-        name: "Dr. Anderson",
+        username: "Dr. Anderson",
         email: "",
         countryCode: "+1",
         phone: "",
@@ -200,7 +200,7 @@ function DoctorDashboard() {
   };
 
   const removePatient = async (patient) => {
-    if (!window.confirm(`Remove ${patient.name || "this patient"} from your patient list?`)) return;
+    if (!window.confirm(`Remove ${patient.username || "this patient"} from your patient list?`)) return;
     const token = localStorage.getItem("geneair_token");
     const res = await fetch(`${API_URL}/auth/patients/${patient._id}`, {
       method: "DELETE", headers: { Authorization: `Bearer ${token}` },
@@ -278,7 +278,7 @@ function DoctorDashboard() {
     ? `${API_URL.replace(/\/api$/, "")}${profile.profileImage}`
     : "";
   const visibleProfileImage = profileImagePreview || profileImageUrl;
-  const initials = (profile.name || "Doctor")
+  const initials = (profile.username || "Doctor")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -316,7 +316,7 @@ function DoctorDashboard() {
   const saveProfile = async (event) => {
     event.preventDefault();
     const formData = new FormData();
-    ["name", "countryCode", "phone", "specialty", "organization", "bio"].forEach((field) =>
+    ["username", "countryCode", "phone", "specialty", "organization", "bio"].forEach((field) =>
       formData.append(field, profile[field] || ""),
     );
     if (profileImageFile) formData.append("profileImage", profileImageFile);
@@ -453,7 +453,7 @@ function DoctorDashboard() {
                 )}
               </button>
               <div className="topbar-profile-text">
-                <strong>{profile.name}</strong>
+                <strong>{profile.username}</strong>
                 <span>{profile.specialty || "GeneAir clinician"}</span>
               </div>
             </div>
@@ -548,9 +548,9 @@ function DoctorDashboard() {
                     <label>
                       Full name
                       <input
-                        value={profile.name}
+                        value={profile.username}
                         onChange={(event) =>
-                          updateProfileField("name", event.target.value)
+                          updateProfileField("username", event.target.value)
                         }
                         required
                       />
@@ -787,14 +787,14 @@ function DoctorDashboard() {
                     </div>
 
                       <div className="patient-avatar">
-                      {(patient.name || "Patient")
+                      {(patient.username || "Patient")
                         .split(" ")
                         .map((name) => name[0])
                         .join("")}
                     </div>
 
                     <div className="appointment-patient">
-                      <strong>{patient.name}</strong>
+                      <strong>{patient.username}</strong>
                       <span>{patient.email}</span>
                     </div>
 
@@ -926,7 +926,7 @@ function DoctorDashboard() {
                           <UserRound size={18} />
                         </div>
                         <div>
-                          <strong>{user.name}</strong>
+                          <strong>{user.username}</strong>
                           <span>{user.email}</span>
                         </div>
                       </div>

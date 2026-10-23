@@ -3,7 +3,7 @@ const logger = require("../utils/logger");
 
 function validCredentials(body) {
   return (
-    body.name?.trim() && body.email?.includes("@") && body.password?.length >= 8
+    body.username?.trim() && body.email?.includes("@") && body.password?.length >= 8
   );
 }
 async function register(request, response) {
@@ -17,7 +17,7 @@ async function register(request, response) {
 
       return response.status(400).json({
         message:
-          "Enter a name, valid email, and password with at least 8 characters.",
+          "Enter a username, valid email, and password with at least 8 characters.",
       });
     }
 
@@ -98,7 +98,7 @@ async function getProfile(request, response) {
 async function updateProfile(request, response) {
   try {
     const profile = {
-      name: request.body.name?.trim(),
+      username: request.body.username?.trim(),
       countryCode: request.body.countryCode?.trim() || "+1",
       phone: request.body.phone?.trim() || "",
       specialty: request.body.specialty?.trim() || "",
@@ -108,11 +108,11 @@ async function updateProfile(request, response) {
 
     logger.info(`Profile update attempt for user: ${request.user.sub}`);
 
-    if (!profile.name) {
+    if (!profile.username) {
       logger.warn(
         `Invalid profile update attempt for user: ${request.user.sub}`,
       );
-      return response.status(400).json({ message: "Your name is required." });
+      return response.status(400).json({ message: "Your username is required." });
     }
     if (request.file) {
       logger.info(`Profile image update attempt for user: ${request.user.sub}`);
@@ -132,15 +132,28 @@ async function updateProfile(request, response) {
 const User = require("../models/User");
 const WatchData = require("../models/WatchData");
 const mongoose = require("mongoose");
+const usernameBloomFilter = require("../services/usernameBloomFilter");
+
+async function usernameAvailability(req, res) {
+  const username = usernameBloomFilter.normalize(req.params.username);
+  if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+    logger.warn(`Invalid username availability check: ${username}`);
+    return res.status(400).json({ available: false, message: "Use 3–30 lowercase letters, numbers, or underscores." });
+  }
+  if (!usernameBloomFilter.isInitialized()) await usernameBloomFilter.initialize(User);
+  const exists = usernameBloomFilter.mightContain(username) && await User.exists({ username });
+  logger.info(`Username availability check for "${username}": ${exists ? "taken" : "available"}`);
+  return res.json({ username, available: !exists });
+}
 
 async function searchPatients(req, res) {
   try {
     const q = req.query.q || "";
     if (!q.trim()) return res.json([]);
     const users = await User.find({
-      name: { $regex: q, $options: "i" },
+      username: { $regex: q, $options: "i" },
       _id: { $ne: req.user.sub },
-    }).select("name email profileImage phone");
+    }).select("username email profileImage phone");
     return res.json(users);
   } catch (error) {
     logger.error("Patient search failed: ", error);
@@ -212,7 +225,7 @@ async function getPatients(req, res) {
     logger.info(`Fetching patients for doctor: ${req.user.sub}`);
     const doctor = await User.findById(req.user.sub).populate(
       "patients",
-      "name email profileImage phone dateOfBirth bmi static_severity static_bmi_range static_age_diagnosed_range static_pef_best static_max_pef_expected static_pack_years createdAt",
+      "username email profileImage phone dateOfBirth bmi static_severity static_bmi_range static_age_diagnosed_range static_pef_best static_max_pef_expected static_pack_years createdAt",
     );
     return res.json(doctor.patients || []);
   } catch (error) {
@@ -298,6 +311,7 @@ async function updatePatientDetails(req, res) {
 
 module.exports = {
   searchPatients,
+  usernameAvailability,
   addPatient,
   removePatient,
   getPatients,

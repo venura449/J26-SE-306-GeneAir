@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DoctorDashboard from "./Pages/DoctorDash/Doctordashboard";
 import API_URL from "./config/api";
@@ -7,9 +7,40 @@ import FloatingChatBubble from "./components/FloatingChatBubble";
 
 function AuthPage() {
   const [mode, setMode] = useState("login");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState(null);
+
+  useEffect(() => {
+    if (mode !== "register") return undefined;
+    const username = form.username.trim().toLowerCase();
+    if (!username) {
+      setUsernameStatus(null);
+      return undefined;
+    }
+    if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+      setUsernameStatus({
+        available: false,
+        message: "Use 3–30 lowercase letters, numbers, or underscores.",
+      });
+      return undefined;
+    }
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `${API_URL}/auth/username-availability/${encodeURIComponent(username)}`,
+        );
+        setUsernameStatus(await response.json());
+      } catch {
+        setUsernameStatus({
+          available: false,
+          message: "Unable to check username availability.",
+        });
+      }
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [form.username, mode]);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -34,7 +65,11 @@ function AuthPage() {
       if (data.token) localStorage.setItem("geneair_token", data.token);
       if (data.user)
         localStorage.setItem("geneair_user", JSON.stringify(data.user));
-      toast.success(mode === "forgot" ? data.message : "You’re all set. Welcome to GeneAir.");
+      toast.success(
+        mode === "forgot"
+          ? data.message
+          : "You’re all set. Welcome to GeneAir.",
+      );
       if (mode !== "forgot") window.location.href = "/doctor-dashboard";
     } catch (error) {
       toast.error(error.message || "Something went wrong. Please try again.");
@@ -49,7 +84,10 @@ function AuthPage() {
       : mode === "register"
         ? "Create your account"
         : "Reset your password";
-  const signInWithGoogle = () => toast.info("Google sign-in needs a Google OAuth client ID and callback URL configured first.");
+  const signInWithGoogle = () =>
+    toast.info(
+      "Google sign-in needs a Google OAuth client ID and callback URL configured first.",
+    );
   return (
     <main className="auth-page">
       <section className="auth-brand">
@@ -92,15 +130,26 @@ function AuthPage() {
         <form onSubmit={submit}>
           {mode === "register" && (
             <label>
-              Full name
+              Username
               <input
                 required
-                value={form.name}
+                value={form.username}
                 onChange={(event) =>
-                  setForm({ ...form, name: event.target.value })
+                  setForm({ ...form, username: event.target.value })
                 }
-                placeholder="Jane Doe"
+                placeholder="Username"
               />
+              {usernameStatus && (
+                <small
+                  style={{
+                    color: usernameStatus.available ? "#16803c" : "#c0392b",
+                  }}
+                >
+                  {usernameStatus.available
+                    ? "Username is available"
+                    : usernameStatus.message || "Username is already taken"}
+                </small>
+              )}
             </label>
           )}
           <label>
@@ -112,7 +161,7 @@ function AuthPage() {
               onChange={(event) =>
                 setForm({ ...form, email: event.target.value })
               }
-              placeholder="you@example.com"
+              placeholder="Email Address"
             />
           </label>
           {mode !== "forgot" && (
@@ -171,7 +220,12 @@ function AuthPage() {
 function App() {
   return (
     <BrowserRouter>
-      <ToastContainer position="top-right" autoClose={3500} newestOnTop theme="colored" />
+      <ToastContainer
+        position="top-right"
+        autoClose={3500}
+        newestOnTop
+        theme="colored"
+      />
       <FloatingChatBubble />
       <Routes>
         <Route path="*" element={<AuthPage />} />

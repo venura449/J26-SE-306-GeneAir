@@ -63,41 +63,6 @@ const countryCodes = [
   ["+971", "United Arab Emirates"],
 ];
 
-const patients = [
-  {
-    id: 1,
-    patient: "Amelia Martin",
-    detail: "Moderate persistent asthma",
-    checkIn: "Today, 09:00 AM",
-    status: "Stable",
-    risk: "Low risk",
-  },
-  {
-    id: 2,
-    patient: "Daniel Smith",
-    detail: "Allergic asthma",
-    checkIn: "Today, 10:30 AM",
-    status: "Monitoring",
-    risk: "Medium risk",
-  },
-  {
-    id: 3,
-    patient: "Sophia Wilson",
-    detail: "Severe asthma",
-    checkIn: "Yesterday, 12:00 PM",
-    status: "Needs review",
-    risk: "High risk",
-  },
-  {
-    id: 4,
-    patient: "James Taylor",
-    detail: "Exercise-induced asthma",
-    checkIn: "Yesterday, 02:30 PM",
-    status: "Stable",
-    risk: "Low risk",
-  },
-];
-
 function createCroppedImage(imageSource, pixelCrop, fileType) {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -161,7 +126,7 @@ function DoctorDashboard() {
   });
   const [savedProfile, setSavedProfile] = useState(profile);
   const [profileImageFile, setProfileImageFile] = useState(null);
-  const [profileMessage, setProfileMessage] = useState("");
+  const [, setProfileMessage] = useState("");
   const [profileBusy, setProfileBusy] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profileImagePreview, setProfileImagePreview] = useState("");
@@ -188,7 +153,7 @@ function DoctorDashboard() {
   const [patientSearchResults, setPatientSearchResults] = useState([]);
   const [doctorPatients, setDoctorPatients] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientRecord, setPatientRecord] = useState(null);
   const [isRecordLoading, setIsRecordLoading] = useState(false);

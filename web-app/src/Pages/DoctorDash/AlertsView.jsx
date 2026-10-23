@@ -67,7 +67,7 @@ function timeAgo(at, now) {
 }
 
 function AlertsView({ patients = [] }) {
-  const now = useMemo(() => Date.now(), [patients]);
+  const now = useMemo(() => Date.now(), []);
   const [overrides, setOverrides] = useState({}); // alertId -> status set by the doctor
   const [severityFilter, setSeverityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");

@@ -257,6 +257,9 @@ def _generate(question, context, evidence, safety):
             "Separate susceptibility research from actionable prescribing guidance.",
             "Say evidence is insufficient when unsupported.",
             "Do not diagnose or prescribe.",
+            "Return only the concise final answer.",
+            "Do not show analysis, reasoning, planning, or a thinking process.",
+            "Start directly with the answer and do not use phrases such as 'Here's a thinking process'.",
         ],
     }
     body = json.dumps(
@@ -264,7 +267,7 @@ def _generate(question, context, evidence, safety):
             "model": LLAMA_MODEL,
             "messages": [{"role": "user", "content": json.dumps(prompt)}],
             "temperature": 0.1,
-            "max_tokens": 900,
+            "max_tokens": 1400,
         }
     ).encode()
     request = Request(
@@ -282,21 +285,26 @@ def _generate(question, context, evidence, safety):
     if not isinstance(answer, str):
         answer = str(answer)
 
-    # Only remove reasoning when Gemma provides a separate final channel.
+    # Gemma may emit either the normal channel marker or a malformed
+    # ``<channel|>`` marker. Keep only the answer after that marker.
     original = answer.strip()
-    channel_pattern = r"<\|channel(?:\|)?\s*>"
-    final_match = re.search(channel_pattern + r"\s*final\b", original, flags=re.I)
-    if final_match:
-        answer = original[final_match.end() :]
+    malformed_final = re.search(r"<\s*channel\s*\|\s*>", original, flags=re.I)
+    if malformed_final:
+        answer = original[malformed_final.end():]
     else:
-        answer = re.sub(
-            channel_pattern + r"\s*(?:thought|analysis)\b\s*",
-            "",
-            original,
-            count=1,
-            flags=re.I,
-        )
-        answer = re.sub(r"<\|(?:end|eot|eom)\|>", "", answer, flags=re.I)
+        channel_pattern = r"<\|channel(?:\|)?\s*>"
+        final_match = re.search(channel_pattern + r"\s*final\b", original, flags=re.I)
+        if final_match:
+            answer = original[final_match.end() :]
+        else:
+            answer = re.sub(
+                channel_pattern + r"\s*(?:thought|analysis)\b\s*",
+                "",
+                original,
+                count=1,
+                flags=re.I,
+            )
+            answer = re.sub(r"<\|(?:end|eot|eom)\|>", "", answer, flags=re.I)
 
     answer = answer.strip()
     if not answer:
@@ -312,7 +320,7 @@ def _evidence_matches_context(question, context, evidence):
     if not genetic_query:
         return True
     evidence_text = " ".join(item["text"].lower() for item in evidence)
-    requested = {
+    query_tokens = {
         token.lower() for token in re.findall(r"\b(?:rs\d+|[a-z0-9]+)\b", query)
     }
     context_tokens = {
@@ -321,12 +329,13 @@ def _evidence_matches_context(question, context, evidence):
         for v in (variant.gene, variant.rsid)
         if v
     }
+    target_tokens = query_tokens | context_tokens
     rsids = {
-        token for token in required if token.startswith("rs") and token[2:].isdigit()
+        token for token in target_tokens if token.startswith("rs") and token[2:].isdigit()
     }
     if rsids:
         return any(token in evidence_text for token in rsids)
-    return any(token in evidence_text for token in required if len(token) > 2)
+    return any(token in evidence_text for token in target_tokens if len(token) > 2)
 
 
 def answer_question(request):

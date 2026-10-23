@@ -7,7 +7,7 @@ import FloatingChatBubble from "./components/FloatingChatBubble";
 
 function AuthPage() {
   const [mode, setMode] = useState("login");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -92,12 +92,12 @@ function AuthPage() {
         <form onSubmit={submit}>
           {mode === "register" && (
             <label>
-              Full name
+              Username
               <input
                 required
-                value={form.name}
+                value={form.username}
                 onChange={(event) =>
-                  setForm({ ...form, name: event.target.value })
+                  setForm({ ...form, username: event.target.value })
                 }
                 placeholder="Jane Doe"
               />

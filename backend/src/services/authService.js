@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const User = require("../models/User");
 const Session = require("../models/Session");
 const logger = require("../utils/logger");
+const usernameBloomFilter = require("./usernameBloomFilter");
 
 const jwtSecret = process.env.JWT_SECRET;
 const sessionDurationMs = 7 * 24 * 60 * 60 * 1000;
@@ -49,7 +50,7 @@ async function createSession(user) {
 async function register({ username, email, password }) {
   const normalizedUsername = username.toLowerCase().trim();
   const normalizedEmail = email.toLowerCase().trim();
-  if (await User.exists({ username: normalizedUsername })) {
+  if (usernameBloomFilter.mightContain(normalizedUsername) && await User.exists({ username: normalizedUsername })) {
     throw Object.assign(new Error("That username is already taken."), { status: 409 });
   }
   if (await User.exists({ email: normalizedEmail })) {
@@ -63,6 +64,7 @@ async function register({ username, email, password }) {
   }
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await User.create({ username: normalizedUsername, email: normalizedEmail, passwordHash });
+  usernameBloomFilter.add(normalizedUsername);
   logger.info(`New user record created in database: ${user.id}`);
   return createSession(user);
 }

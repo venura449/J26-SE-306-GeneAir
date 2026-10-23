@@ -15,6 +15,7 @@ const upload = multer({
     fileFilter: (_request, file, callback) => callback(null, /^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)),
 });
 router.post('/register', controller.register);
+router.get('/username-availability/:username', controller.usernameAvailability);
 router.post('/login', controller.login);
 router.post('/forgot-password', controller.forgotPassword);
 router.post('/logout', authenticate, controller.logout);

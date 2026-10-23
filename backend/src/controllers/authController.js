@@ -132,6 +132,19 @@ async function updateProfile(request, response) {
 const User = require("../models/User");
 const WatchData = require("../models/WatchData");
 const mongoose = require("mongoose");
+const usernameBloomFilter = require("../services/usernameBloomFilter");
+
+async function usernameAvailability(req, res) {
+  const username = usernameBloomFilter.normalize(req.params.username);
+  if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+    logger.warn(`Invalid username availability check: ${username}`);
+    return res.status(400).json({ available: false, message: "Use 3–30 lowercase letters, numbers, or underscores." });
+  }
+  if (!usernameBloomFilter.isInitialized()) await usernameBloomFilter.initialize(User);
+  const exists = usernameBloomFilter.mightContain(username) && await User.exists({ username });
+  logger.info(`Username availability check for "${username}": ${exists ? "taken" : "available"}`);
+  return res.json({ username, available: !exists });
+}
 
 async function searchPatients(req, res) {
   try {
@@ -298,6 +311,7 @@ async function updatePatientDetails(req, res) {
 
 module.exports = {
   searchPatients,
+  usernameAvailability,
   addPatient,
   removePatient,
   getPatients,

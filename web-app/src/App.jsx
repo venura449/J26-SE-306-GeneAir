@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DoctorDashboard from "./Pages/DoctorDash/Doctordashboard";
 import API_URL from "./config/api";
 import { ToastContainer, toast } from "react-toastify";
-import FloatingChatBubble from "./components/FloatingChatBubble";
 
 function AuthPage() {
   const [mode, setMode] = useState("login");
@@ -101,9 +100,8 @@ function AuthPage() {
           A simpler way to connect with better healthcare.
         </p>
       </section>
-      <section className="auth-card">
+      <section className={`auth-card auth-card-${mode}`}>
         <div className="auth-card-head">
-          <p className="eyebrow">GENEAIR HEALTH</p>
           <h2>{title}</h2>
           <p>
             {mode === "login"
@@ -226,7 +224,6 @@ function App() {
         newestOnTop
         theme="colored"
       />
-      <FloatingChatBubble />
       <Routes>
         <Route path="*" element={<AuthPage />} />
         <Route path="/doctor-dashboard" element={<DoctorDashboard />} />

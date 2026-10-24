@@ -1,42 +1,42 @@
 ---
 version: alpha
 name: Claymorphism
-description: A soft purple clay shadcn/ui theme — violet primary, warm gray canvas, bold rounded shadows, and playful tactile depth by tweakcn.
+description: A soft blue clay shadcn/ui theme — blue primary, cool gray canvas, bold rounded shadows, and playful tactile depth.
 colors:
   background: "#e0e0e0"
   foreground: "#1d293d"
   card: "#fafafa"
-  primary: "#6468f0"
+  primary: "#2563eb"
   primary-foreground: "#ffffff"
   secondary: "#d4d4d4"
   secondary-foreground: "#4b5666"
   muted: "#ededed"
   muted-foreground: "#6c727e"
-  accent: "#ab66f0"
-  accent-foreground: "#ebd8fd"
+  accent: "#60a5fa"
+  accent-foreground: "#dbeafe"
   destructive: "#f14444"
   border: "#d4d4d4"
   input: "#d4d4d4"
-  ring: "#6468f0"
+  ring: "#2563eb"
   sidebar: "#d4d4d4"
   sidebar-foreground: "#1d293d"
-  sidebar-primary: "#6468f0"
+  sidebar-primary: "#2563eb"
   sidebar-accent: "#ededed"
-  chart-1: "#6468f0"
-  chart-2: "#ab66f0"
-  chart-3: "#818cf9"
-  chart-4: "#5046e5"
-  chart-5: "#3b3fa0"
-  dark-background: "#1e1a16"
-  dark-foreground: "#e4e8ef"
-  dark-card: "#1e1a16"
-  dark-primary: "#818cf9"
-  dark-secondary: "#3c3733"
-  dark-muted: "#2d2824"
-  dark-muted-foreground: "#a1a5ad"
-  dark-accent: "#6468f0"
-  dark-border: "#3c3733"
-  dark-sidebar: "#3c3733"
+  chart-1: "#2563eb"
+  chart-2: "#60a5fa"
+  chart-3: "#93c5fd"
+  chart-4: "#1d4ed8"
+  chart-5: "#1e3a8a"
+  dark-background: "#111827"
+  dark-foreground: "#e5eefc"
+  dark-card: "#172033"
+  dark-primary: "#60a5fa"
+  dark-secondary: "#26364f"
+  dark-muted: "#1e2b41"
+  dark-muted-foreground: "#a8bad3"
+  dark-accent: "#2563eb"
+  dark-border: "#314563"
+  dark-sidebar: "#1b2940"
 typography:
   display:
     fontFamily: Plus Jakarta Sans
@@ -138,7 +138,7 @@ A premade shadcn/ui theme by [tweakcn](https://tweakcn.com). Install tokens with
 
 ## Overview
 
-Claymorphism feels like pressing buttons into soft modeling clay: warm gray canvas, near-white cards that puff upward, bold violet primary, and thick colored shadows that give every element a tactile, almost physical presence. The background (`#e0e0e0`) is intentionally mid-tone — not white, not dark — creating a neutral clay surface from which UI elements appear molded.
+Claymorphism feels like pressing buttons into soft modeling clay: cool gray canvas, near-white cards that puff upward, bold blue primary, and thick colored shadows that give every element a tactile, almost physical presence. The background (`#e0e0e0`) is intentionally mid-tone — not white, not dark — creating a neutral clay surface from which UI elements appear molded.
 
 The system is **playful, tactile, and rounded**. It suits creative tools, educational platforms, consumer productivity apps, lifestyle products, and any interface that wants to feel delightful and approachable rather than corporate or technical. The generous radius (1.25rem base!) and thick blurred shadows are the defining visual signature.
 
@@ -146,10 +146,10 @@ Emotional targets: friendly, tangible, craft-like — never flat-corporate, neve
 
 ## Colors
 
-The palette pairs a **saturated violet primary** with a **warm neutral clay stage**. Purple brings energy; the gray canvas grounds it.
+The palette pairs a **saturated blue primary** with a **cool neutral clay stage**. Blue brings clarity and trust; the gray canvas grounds it.
 
-- **Primary (`#6468f0`):** Bright violet-blue — primary buttons, links, focus rings, and brand moments. In dark mode, lifts to lavender (`#818cf9`) for visibility on warm dark surfaces.
-- **Accent (`#ab66f0`):** Rich purple — secondary highlights, chart accents, decorative moments. Adds depth to the violet family.
+- **Primary (`#2563eb`):** Clear royal blue — primary buttons, links, focus rings, and brand moments. In dark mode, lifts to sky blue (`#60a5fa`) for visibility.
+- **Accent (`#60a5fa`):** Soft sky blue — secondary highlights, chart accents, and decorative moments. Adds depth to the blue family.
 - **Secondary (`#d4d4d4`):** Mid-gray — secondary buttons, sidebar, quiet structural fills.
 - **Foreground (`#1d293d`):** Dark navy-ink — body text. Slightly blue-shifted for warmth against gray.
 - **Background (`#e0e0e0`):** Clay gray canvas — the defining color. Mid-tone creates the "clay slab" from which elements extrude.

@@ -2,6 +2,6 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 chromadb>=0.5,<1
 sentence-transformers>=3.0,<6
-torch>=2.2
+torch>=2.14.1
 pypdf>=5.0,<7
 pydantic>=2.8,<3

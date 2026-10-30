@@ -3,5 +3,5 @@ uvicorn[standard]==0.30.6
 chromadb>=0.5,<1
 sentence-transformers>=3.0,<6
 torch>=2.2
-pypdf>=5.0,<7
+pypdf>=6.21.3,<7
 pydantic>=2.8,<3
